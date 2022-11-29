@@ -45,3 +45,10 @@ all = ["pytest", "python-dateutil>=2.8.0"]
 
 [tool.setuptools]
 packages = ["pyhocon"]
+
+[tool.black]
+line-length = 88
+target-version = ['py37']
+
+[tool.isort]
+profile = "black"

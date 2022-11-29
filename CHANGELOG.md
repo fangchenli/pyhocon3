@@ -156,16 +156,16 @@
 
 * Don't lock pyparsing to a specific version. PR [#86]
 
-# Version 0.3.28 
+# Version 0.3.28
 
 * Quoted str ws fix. PR [#85]
 
-# Version 0.3.27 
+# Version 0.3.27
 
 * Fixes for self-reference resolution after merging configs. PR [#82]
 * Key with dots. PR [#83]
 
-# Version 0.3.26 
+# Version 0.3.26
 
 * Implemented self-referential substitutions and +=. PR [#81]
 
