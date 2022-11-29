@@ -6,12 +6,15 @@ from collections import OrderedDict
 from datetime import timedelta
 from unittest import mock
 
-from pyparsing import ParseBaseException, ParseException, ParseSyntaxException
 import pytest
+from pyparsing import ParseBaseException, ParseException, ParseSyntaxException
 
-from pyhocon import (ConfigFactory, ConfigParser, ConfigSubstitutionException, ConfigTree)
-from pyhocon.exceptions import (ConfigException, ConfigMissingException,
-                                ConfigWrongTypeException)
+from pyhocon import ConfigFactory, ConfigParser, ConfigSubstitutionException, ConfigTree
+from pyhocon.exceptions import (
+    ConfigException,
+    ConfigMissingException,
+    ConfigWrongTypeException,
+)
 
 try:
     from dateutil.relativedelta import relativedelta as period
@@ -41,35 +44,40 @@ class TestConfigParser:
             """
         )
 
-        assert config.get_string('t.c') == '5'
-        assert config.get_int('t.c') == 5
-        assert config.get_float('t.c') == 5.0
-        assert config.get('t.e.y.f') == 7
-        assert config.get('t.e.y.g') == 'hey dude!'
-        assert config.get('t.e.y.h') == 'hey man'
-        assert [v.strip() for v in config.get('t.e.y.i').split('\n')] == ['', '"first line"', '"second" line', '']
-        assert config.get_bool('t.d') is True
-        assert config.get_int('t.e.y.f') == 7
-        assert config.get('t.j') == [1, 2, 3]
-        assert config.get('t.u') == '192.168.1.3/32'
-        assert config.get_int('t.g') is None
-        assert config.get_float('t.g') is None
-        assert config.get_string('t.g') is None
-        assert config.get_bool('t.g') is None
-        assert config.get_list('t.g') is None
-        assert config.get_config('t.g') is None
+        assert config.get_string("t.c") == "5"
+        assert config.get_int("t.c") == 5
+        assert config.get_float("t.c") == 5.0
+        assert config.get("t.e.y.f") == 7
+        assert config.get("t.e.y.g") == "hey dude!"
+        assert config.get("t.e.y.h") == "hey man"
+        assert [v.strip() for v in config.get("t.e.y.i").split("\n")] == [
+            "",
+            '"first line"',
+            '"second" line',
+            "",
+        ]
+        assert config.get_bool("t.d") is True
+        assert config.get_int("t.e.y.f") == 7
+        assert config.get("t.j") == [1, 2, 3]
+        assert config.get("t.u") == "192.168.1.3/32"
+        assert config.get_int("t.g") is None
+        assert config.get_float("t.g") is None
+        assert config.get_string("t.g") is None
+        assert config.get_bool("t.g") is None
+        assert config.get_list("t.g") is None
+        assert config.get_config("t.g") is None
 
-    @pytest.mark.parametrize('forbidden_char', ['+', '`', '^', '?', '!', '@', '*', '&'])
+    @pytest.mark.parametrize("forbidden_char", ["+", "`", "^", "?", "!", "@", "*", "&"])
     def test_fail_parse_forbidden_characters(self, forbidden_char):
         with pytest.raises(ParseBaseException):
-            ConfigFactory.parse_string(f'a: hey man{forbidden_char}')
+            ConfigFactory.parse_string(f"a: hey man{forbidden_char}")
 
-    @pytest.mark.parametrize('forbidden_char', ['$', '"'])
+    @pytest.mark.parametrize("forbidden_char", ["$", '"'])
     def test_fail_parse_forbidden_characters_in_context(self, forbidden_char):
         with pytest.raises(ParseException):
-            ConfigFactory.parse_string(f'a: hey man{forbidden_char}')
+            ConfigFactory.parse_string(f"a: hey man{forbidden_char}")
 
-    @pytest.mark.parametrize('forbidden_char', ['+', '`', '^', '?', '!', '@', '*', '&'])
+    @pytest.mark.parametrize("forbidden_char", ["+", "`", "^", "?", "!", "@", "*", "&"])
     def test_parse_forbidden_characters_quoted(self, forbidden_char):
         value = f"hey man{forbidden_char}"
         config = ConfigFactory.parse_string(f'a: "{value}"')
@@ -86,56 +94,52 @@ class TestConfigParser:
             """
         )
 
-        assert config.get_string('a.b') == '5'
+        assert config.get_string("a.b") == "5"
 
-    @pytest.mark.parametrize('data_set', [
-        ('a: 1 minutes', period(minutes=1)),
-        ('a: 1minutes', period(minutes=1)),
-        ('a: 2 minute', period(minutes=2)),
-        ('a: 3 m', period(minutes=3)),
-        ('a: 3m', period(minutes=3)),
-        ('a: 3 min', '3 min'),
-
-        ('a: 4 seconds', period(seconds=4)),
-        ('a: 5 second', period(seconds=5)),
-        ('a: 6 s', period(seconds=6)),
-        ('a: 6 sec', '6 sec'),
-
-        ('a: 7 hours', period(hours=7)),
-        ('a: 8 hour', period(hours=8)),
-        ('a: 9 h', period(hours=9)),
-
-        ('a: 10 weeks', period(weeks=10)),
-        ('a: 11 week', period(weeks=11)),
-        ('a: 12 w', period(weeks=12)),
-
-        ('a: 10 days', period(days=10)),
-        ('a: 11 day', period(days=11)),
-        ('a: 12 d', period(days=12)),
-
-        ('a: 110 microseconds', period(microseconds=110)),
-        ('a: 111 microsecond', period(microseconds=111)),
-        ('a: 112 micros', period(microseconds=112)),
-        ('a: 113 micro', period(microseconds=113)),
-        ('a: 114 us', period(microseconds=114)),
-
-        ('a: 110 milliseconds', timedelta(milliseconds=110)),
-        ('a: 111 millisecond', timedelta(milliseconds=111)),
-        ('a: 112 millis', timedelta(milliseconds=112)),
-        ('a: 113 milli', timedelta(milliseconds=113)),
-        ('a: 114 ms', timedelta(milliseconds=114)),
-
-        ('a: 110 nanoseconds', period(microseconds=0)),
-        ('a: 11000 nanoseconds', period(microseconds=11)),
-        ('a: 1110000 nanosecond', period(microseconds=1110)),
-        ('a: 1120000 nanos', period(microseconds=1120)),
-        ('a: 1130000 nano', period(microseconds=1130)),
-        ('a: 1140000 ns', period(microseconds=1140)),
-    ])
+    @pytest.mark.parametrize(
+        "data_set",
+        [
+            ("a: 1 minutes", period(minutes=1)),
+            ("a: 1minutes", period(minutes=1)),
+            ("a: 2 minute", period(minutes=2)),
+            ("a: 3 m", period(minutes=3)),
+            ("a: 3m", period(minutes=3)),
+            ("a: 3 min", "3 min"),
+            ("a: 4 seconds", period(seconds=4)),
+            ("a: 5 second", period(seconds=5)),
+            ("a: 6 s", period(seconds=6)),
+            ("a: 6 sec", "6 sec"),
+            ("a: 7 hours", period(hours=7)),
+            ("a: 8 hour", period(hours=8)),
+            ("a: 9 h", period(hours=9)),
+            ("a: 10 weeks", period(weeks=10)),
+            ("a: 11 week", period(weeks=11)),
+            ("a: 12 w", period(weeks=12)),
+            ("a: 10 days", period(days=10)),
+            ("a: 11 day", period(days=11)),
+            ("a: 12 d", period(days=12)),
+            ("a: 110 microseconds", period(microseconds=110)),
+            ("a: 111 microsecond", period(microseconds=111)),
+            ("a: 112 micros", period(microseconds=112)),
+            ("a: 113 micro", period(microseconds=113)),
+            ("a: 114 us", period(microseconds=114)),
+            ("a: 110 milliseconds", timedelta(milliseconds=110)),
+            ("a: 111 millisecond", timedelta(milliseconds=111)),
+            ("a: 112 millis", timedelta(milliseconds=112)),
+            ("a: 113 milli", timedelta(milliseconds=113)),
+            ("a: 114 ms", timedelta(milliseconds=114)),
+            ("a: 110 nanoseconds", period(microseconds=0)),
+            ("a: 11000 nanoseconds", period(microseconds=11)),
+            ("a: 1110000 nanosecond", period(microseconds=1110)),
+            ("a: 1120000 nanos", period(microseconds=1120)),
+            ("a: 1130000 nano", period(microseconds=1130)),
+            ("a: 1140000 ns", period(microseconds=1140)),
+        ],
+    )
     def test_parse_string_with_duration(self, data_set):
         config = ConfigFactory.parse_string(data_set[0])
 
-        assert config['a'] == data_set[1]
+        assert config["a"] == data_set[1]
 
     def test_parse_string_with_duration_with_long_unit_name(self):
         config = ConfigFactory.parse_string(
@@ -145,7 +149,7 @@ class TestConfigParser:
             c: bar
             """
         )
-        assert config['b'] == period(weeks=10)
+        assert config["b"] == period(weeks=10)
 
     def test_parse_with_list_mixed_types_with_durations_and_trailing_comma(self):
         config = ConfigFactory.parse_string(
@@ -155,7 +159,7 @@ class TestConfigParser:
             c: bar
             """
         )
-        assert config['b'] == ['a', 1, period(weeks=10), period(minutes=5)]
+        assert config["b"] == ["a", 1, period(weeks=10), period(minutes=5)]
 
     def test_parse_with_enclosing_square_bracket(self):
         config = ConfigFactory.parse_string("[1, 2, 3]")
@@ -176,7 +180,7 @@ class TestConfigParser:
             """
         )
         assert config['"a.b.c.d"'] == 3
-        assert config['t.d.c'] == 5
+        assert config["t.d.c"] == 5
         assert config['k."b.f.d"'] == 7
 
     def test_dotted_notation_merge(self):
@@ -190,9 +194,9 @@ class TestConfigParser:
             a.d = baz
             """
         )
-        assert config['a.b'] == "foo"
-        assert config['a.c'] == "foo foo"
-        assert config['a.d'] == "baz"
+        assert config["a.b"] == "foo"
+        assert config["a.c"] == "foo foo"
+        assert config["a.d"] == "baz"
 
     def test_comma_to_separate_expr(self):
         config = ConfigFactory.parse_string(
@@ -206,13 +210,13 @@ class TestConfigParser:
             "a b c d e"=test3
             """
         )
-        assert config.get('a') == 1
-        assert config.get('b') == 'abc'
-        assert config.get('c') == 'the man'
-        assert config.get('d') == 'woof'
-        assert config.get('a-b-c-d') == 'test'
-        assert config.get('a b c d') == 'test2'
-        assert config.get('a b c d e') == 'test3'
+        assert config.get("a") == 1
+        assert config.get("b") == "abc"
+        assert config.get("c") == "the man"
+        assert config.get("d") == "woof"
+        assert config.get("a-b-c-d") == "test"
+        assert config.get("a b c d") == "test2"
+        assert config.get("a b c d e") == "test3"
 
     def test_dict_merge(self):
         config = ConfigFactory.parse_string(
@@ -235,28 +239,13 @@ class TestConfigParser:
                             e:65
                     }
             }
-            """)
+            """
+        )
 
         expected_result = {
             "a": {
-                "d": {
-                    "g": {
-                        "h": {
-                            "j": {
-                                "u": 5
-                            },
-                            "d": 4,
-                            "k": "f d"
-                        }
-                    }
-                },
-                "h": {
-                    "i": {
-                        "m": 7,
-                        "d": 5,
-                        "e": 65
-                    }
-                }
+                "d": {"g": {"h": {"j": {"u": 5}, "d": 4, "k": "f d"}}},
+                "h": {"i": {"m": 7, "d": 5, "e": 65}},
             }
         }
         assert expected_result == config
@@ -283,11 +272,11 @@ class TestConfigParser:
             """
         )
 
-        assert config.get('c') == 'test'
-        assert config.get('g') == '6 test'
-        assert config.get('a.b') == 'test'
-        assert config.get_string('a.b') == 'test'
-        assert config.get('t') == [1, 2, 3]
+        assert config.get("c") == "test"
+        assert config.get("g") == "6 test"
+        assert config.get("a.b") == "test"
+        assert config.get_string("a.b") == "test"
+        assert config.get("t") == [1, 2, 3]
 
     def test_missing_config(self):
         config = ConfigFactory.parse_string(
@@ -297,7 +286,7 @@ class TestConfigParser:
         )
         # b is not set so show raise an exception
         with pytest.raises(ConfigMissingException):
-            config.get('b')
+            config.get("b")
 
     def test_parse_null(self):
         config = ConfigFactory.parse_string(
@@ -306,8 +295,8 @@ class TestConfigParser:
             b = [null]
             """
         )
-        assert config.get('a') is None
-        assert config.get('b')[0] is None
+        assert config.get("a") is None
+        assert config.get("b")[0] is None
 
     def test_parse_override(self):
         config = ConfigFactory.parse_string(
@@ -326,8 +315,8 @@ class TestConfigParser:
             """
         )
 
-        assert config.get('a.b.c') == 7
-        assert config.get('a.b.d') == 8
+        assert config.get("a.b.c") == 7
+        assert config.get("a.b.d") == 8
 
     def test_concat_dict(self):
         config = ConfigFactory.parse_string(
@@ -339,10 +328,10 @@ class TestConfigParser:
             }
             """
         )
-        assert config.get('a.b') == 1
-        assert config.get('a.c') == 2
-        assert config.get('b.c') == 5
-        assert config.get('b.d') == 4
+        assert config.get("a.b") == 1
+        assert config.get("a.c") == 2
+        assert config.get("b.c") == 5
+        assert config.get("b.d") == 4
 
     def test_concat_string(self):
         config = ConfigFactory.parse_string(
@@ -353,9 +342,9 @@ class TestConfigParser:
             """
         )
 
-        assert config.get('a') == 'a b c'
-        assert config.get('b') == '5 b'
-        assert config.get('c') == 'b 7'
+        assert config.get("a") == "a b c"
+        assert config.get("b") == "5 b"
+        assert config.get("c") == "b 7"
 
     def test_concat_list(self):
         config = ConfigFactory.parse_string(
@@ -367,11 +356,11 @@ class TestConfigParser:
             """
         )
 
-        assert config.get('a') == [1, 2, 3, 4, 5, 6]
-        assert config.get_list('a') == [1, 2, 3, 4, 5, 6]
+        assert config.get("a") == [1, 2, 3, 4, 5, 6]
+        assert config.get_list("a") == [1, 2, 3, 4, 5, 6]
 
     def test_bad_concat(self):
-        ConfigFactory.parse_string('a = 45\n')
+        ConfigFactory.parse_string("a = 45\n")
         with pytest.raises(ConfigWrongTypeException):
             ConfigFactory.parse_string('a = [4] "4"')
         with pytest.raises(ConfigWrongTypeException):
@@ -395,9 +384,9 @@ class TestConfigParser:
             """
         )
 
-        assert config1.get('a.b.c') == 'str'
-        assert config1.get('d') == 'str'
-        assert config1.get('f') == 'str      '
+        assert config1.get("a.b.c") == "str"
+        assert config1.get("d") == "str"
+        assert config1.get("f") == "str      "
 
         config2 = ConfigFactory.parse_string(
             """
@@ -414,9 +403,9 @@ class TestConfigParser:
             """
         )
 
-        assert config2.get('a.b.c') == 'str'
-        assert config2.get('d') == 'test  str'
-        assert config2.get('f') == 'test  str      '
+        assert config2.get("a.b.c") == "str"
+        assert config2.get("d") == "test  str"
+        assert config2.get("f") == "test  str      "
 
         config3 = ConfigFactory.parse_string(
             """
@@ -433,9 +422,9 @@ class TestConfigParser:
             """
         )
 
-        assert config3.get('a.b.c') == 'str'
-        assert config3.get('d') == 'test  str  me'
-        assert config3.get('f') == 'test  str        me'
+        assert config3.get("a.b.c") == "str"
+        assert config3.get("d") == "test  str  me"
+        assert config3.get("f") == "test  str        me"
 
     def test_string_substitutions_with_no_space(self):
         config = ConfigFactory.parse_string(
@@ -448,10 +437,7 @@ class TestConfigParser:
             """
         )
 
-        assert config.get('app.java_opts') == [
-            '-Xms128m',
-            '-Xmx128m'
-        ]
+        assert config.get("app.java_opts") == ["-Xms128m", "-Xmx128m"]
 
     def test_int_substitutions(self):
         config1 = ConfigFactory.parse_string(
@@ -467,8 +453,8 @@ class TestConfigParser:
             """
         )
 
-        assert config1.get('a.b.c') == 5
-        assert config1.get('d') == 5
+        assert config1.get("a.b.c") == 5
+        assert config1.get("d") == 5
 
         config2 = ConfigFactory.parse_string(
             """
@@ -483,8 +469,8 @@ class TestConfigParser:
             """
         )
 
-        assert config2.get('a.b.c') == 5
-        assert config2.get('d') == 'test 5'
+        assert config2.get("a.b.c") == 5
+        assert config2.get("d") == "test 5"
 
         config3 = ConfigFactory.parse_string(
             """
@@ -499,8 +485,8 @@ class TestConfigParser:
             """
         )
 
-        assert config3.get('a.b.c') == 5
-        assert config3.get('d') == 'test 5 me'
+        assert config3.get("a.b.c") == 5
+        assert config3.get("d") == "test 5 me"
 
     def test_cascade_string_substitutions(self):
         config = ConfigFactory.parse_string(
@@ -517,8 +503,8 @@ class TestConfigParser:
             """
         )
 
-        assert config.get('a.b.c') == 7
-        assert config.get('d') == 'test 7 me'
+        assert config.get("a.b.c") == 7
+        assert config.get("d") == "test 7 me"
 
     def test_multiple_substitutions(self):
         config = ConfigFactory.parse_string(
@@ -529,11 +515,7 @@ class TestConfigParser:
             """
         )
 
-        assert config == {
-            'a': 5,
-            'b': '55',
-            'c': '5 5'
-        }
+        assert config == {"a": 5, "b": "55", "c": "5 5"}
 
     def test_dict_substitutions(self):
         config = ConfigFactory.parse_string(
@@ -543,8 +525,8 @@ class TestConfigParser:
             """
         )
 
-        assert config.get('data-center-east.cluster-size') == 6
-        assert config.get('data-center-east.name') == 'east'
+        assert config.get("data-center-east.cluster-size") == 6
+        assert config.get("data-center-east.name") == "east"
 
         config2 = ConfigFactory.parse_string(
             """
@@ -553,8 +535,8 @@ class TestConfigParser:
             """
         )
 
-        assert config2.get('data-center-east.cluster-size') == 6
-        assert config2.get('data-center-east.name') == 'east'
+        assert config2.get("data-center-east.cluster-size") == 6
+        assert config2.get("data-center-east.name") == "east"
 
         config3 = ConfigFactory.parse_string(
             """
@@ -563,9 +545,9 @@ class TestConfigParser:
             """
         )
 
-        assert config3.get('data-center-east.cluster-size') == 9
-        assert config3.get('data-center-east.name') == 'east'
-        assert config3.get('data-center-east.opts') == '-Xmx4g'
+        assert config3.get("data-center-east.cluster-size") == 9
+        assert config3.get("data-center-east.name") == "east"
+        assert config3.get("data-center-east.opts") == "-Xmx4g"
 
         config4 = ConfigFactory.parse_string(
             """
@@ -575,10 +557,10 @@ class TestConfigParser:
             """
         )
 
-        assert config4.get('data-center-east.cluster-size') == 6
-        assert config4.get('data-center-east.name') == 'east'
-        assert config4.get('data-center-east-prod.cluster-size') == 6
-        assert config4.get('data-center-east-prod.tmpDir') == '/tmp'
+        assert config4.get("data-center-east.cluster-size") == 6
+        assert config4.get("data-center-east.name") == "east"
+        assert config4.get("data-center-east-prod.cluster-size") == 6
+        assert config4.get("data-center-east-prod.tmpDir") == "/tmp"
 
         config5 = ConfigFactory.parse_string(
             """
@@ -588,10 +570,7 @@ class TestConfigParser:
             """
         )
 
-        assert config5['data-center-east'] == {
-            'name': 'east',
-            'cluster-size': 6
-        }
+        assert config5["data-center-east"] == {"name": "east", "cluster-size": 6}
 
         config6 = ConfigFactory.parse_string(
             """
@@ -600,30 +579,27 @@ class TestConfigParser:
                 data-center-east = ${data-center-generic}
             """
         )
-        assert config6['data-center-east'] == {
-            'name': 'east',
-            'cluster-size': 6
-        }
+        assert config6["data-center-east"] == {"name": "east", "cluster-size": 6}
 
     def test_dos_chars_with_unquoted_string_noeol(self):
         config = ConfigFactory.parse_string("foo = bar")
-        assert config['foo'] == 'bar'
+        assert config["foo"] == "bar"
 
     def test_dos_chars_with_quoted_string_noeol(self):
         config = ConfigFactory.parse_string('foo = "5"')
-        assert config['foo'] == '5'
+        assert config["foo"] == "5"
 
     def test_dos_chars_with_triple_quoted_string_noeol(self):
         config = ConfigFactory.parse_string('foo = """5"""')
-        assert config['foo'] == '5'
+        assert config["foo"] == "5"
 
     def test_dos_chars_with_int_noeol(self):
         config = ConfigFactory.parse_string("foo = 5")
-        assert config['foo'] == 5
+        assert config["foo"] == 5
 
     def test_dos_chars_with_float_noeol(self):
         config = ConfigFactory.parse_string("foo = 5.0")
-        assert config['foo'] == 5.0
+        assert config["foo"] == 5.0
 
     def test_list_substitutions(self):
         config = ConfigFactory.parse_string(
@@ -633,7 +609,7 @@ class TestConfigParser:
             """
         )
 
-        assert config.get('host_modules') == ['php', 'python', 'java']
+        assert config.get("host_modules") == ["php", "python", "java"]
 
         config2 = ConfigFactory.parse_string(
             """
@@ -642,7 +618,7 @@ class TestConfigParser:
             """
         )
 
-        assert config2.get('host_modules') == ['java', 'php', 'python']
+        assert config2.get("host_modules") == ["java", "php", "python"]
 
         config3 = ConfigFactory.parse_string(
             """
@@ -651,8 +627,8 @@ class TestConfigParser:
             """
         )
 
-        assert config3.get('common_modules') == ['php', 'python']
-        assert config3.get('host_modules') == ['java', 'php', 'python', 'perl']
+        assert config3.get("common_modules") == ["php", "python"]
+        assert config3.get("host_modules") == ["java", "php", "python", "perl"]
 
         config4 = ConfigFactory.parse_string(
             """
@@ -662,9 +638,16 @@ class TestConfigParser:
             """
         )
 
-        assert config4.get('common_modules') == ['php', 'python']
-        assert config4.get('host_modules') == ['java', 'php', 'python', 'perl']
-        assert config4.get('full_modules') == ['java', 'php', 'python', 'perl', 'c', 'go']
+        assert config4.get("common_modules") == ["php", "python"]
+        assert config4.get("host_modules") == ["java", "php", "python", "perl"]
+        assert config4.get("full_modules") == [
+            "java",
+            "php",
+            "python",
+            "perl",
+            "c",
+            "go",
+        ]
 
     def test_list_element_substitution(self):
         config = ConfigFactory.parse_string(
@@ -674,7 +657,7 @@ class TestConfigParser:
             """
         )
 
-        assert config.get('languages') == ['java', 'php']
+        assert config.get("languages") == ["java", "php"]
 
     def test_substitution_list_with_append(self):
         config = ConfigFactory.parse_string(
@@ -682,18 +665,19 @@ class TestConfigParser:
             application.foo = 128mm
             application.large-jvm-opts = ["-XX:+UseParNewGC"] [-Xm16g, ${application.foo}]
             application.large-jvm-opts2 = [-Xm16g, ${application.foo}] ["-XX:+UseParNewGC"]
-            """)
+            """
+        )
 
         assert config["application.large-jvm-opts"] == [
-            '-XX:+UseParNewGC',
-            '-Xm16g',
-            '128mm'
+            "-XX:+UseParNewGC",
+            "-Xm16g",
+            "128mm",
         ]
 
         assert config["application.large-jvm-opts2"] == [
-            '-Xm16g',
-            '128mm',
-            '-XX:+UseParNewGC',
+            "-Xm16g",
+            "128mm",
+            "-XX:+UseParNewGC",
         ]
 
     def test_substitution_list_with_append_substitution(self):
@@ -703,18 +687,19 @@ class TestConfigParser:
             application.default-jvm-opts = ["-XX:+UseParNewGC"]
             application.large-jvm-opts = ${application.default-jvm-opts} [-Xm16g, ${application.foo}]
             application.large-jvm-opts2 = [-Xm16g, ${application.foo}] ${application.default-jvm-opts}
-            """)
+            """
+        )
 
         assert config["application.large-jvm-opts"] == [
-            '-XX:+UseParNewGC',
-            '-Xm16g',
-            '128mm'
+            "-XX:+UseParNewGC",
+            "-Xm16g",
+            "128mm",
         ]
 
         assert config["application.large-jvm-opts2"] == [
-            '-Xm16g',
-            '128mm',
-            '-XX:+UseParNewGC'
+            "-Xm16g",
+            "128mm",
+            "-XX:+UseParNewGC",
         ]
 
     def test_non_existent_substitution(self):
@@ -816,11 +801,11 @@ class TestConfigParser:
         assert config.get("x") == [1, 2, 3, 4]
 
     def test_self_append_string(self):
-        '''
+        """
         Should be equivalent to
         x = abc
         x = ${?x} def
-        '''
+        """
         config = ConfigFactory.parse_string(
             """
             x = abc
@@ -830,9 +815,9 @@ class TestConfigParser:
         assert config.get("x") == "abc def"
 
     def test_self_append_non_existent_string(self):
-        '''
+        """
         Should be equivalent to x = ${?x} def
-        '''
+        """
         config = ConfigFactory.parse_string(
             """
             x += def
@@ -855,7 +840,7 @@ class TestConfigParser:
             x += {b: 2}
             """
         )
-        assert config.get("x") == {'a': 1, 'b': 2}
+        assert config.get("x") == {"a": 1, "b": 2}
 
     def test_self_append_nonexistent_object(self):
         config = ConfigFactory.parse_string(
@@ -863,7 +848,7 @@ class TestConfigParser:
             x += {a: 1}
             """
         )
-        assert config.get("x") == {'a': 1}
+        assert config.get("x") == {"a": 1}
 
     def test_self_ref_substitution_array_to_dict(self):
         config = ConfigFactory.parse_string(
@@ -876,7 +861,7 @@ class TestConfigParser:
         )
         assert config.get("x.x") == [3, 4]
         assert config.get("x.y") == [5, 6]
-        assert config.get("x.z") == {'x': [3, 4], 'y': [5, 6]}
+        assert config.get("x.z") == {"x": [3, 4], "y": [5, 6]}
 
     def test_self_ref_substitiotion_dict_in_array(self):
         config = ConfigFactory.parse_string(
@@ -886,7 +871,7 @@ class TestConfigParser:
             """
         )
         (one, two, three) = config.get("x")
-        assert one == {'x': [3, 4]}
+        assert one == {"x": [3, 4]}
         assert two == 2
         assert three == 3
 
@@ -897,9 +882,9 @@ class TestConfigParser:
             x = ${x.y}
             """
         )
-        assert config.get("x.y") == {'z': 1}
+        assert config.get("x.y") == {"z": 1}
         assert config.get("x.z") == 1
-        assert set(config.get("x").keys()) == {'y', 'z'}
+        assert set(config.get("x").keys()) == {"y", "z"}
 
     def test_self_ref_substitution_dict_path_hide(self):
         config = ConfigFactory.parse_string(
@@ -909,7 +894,7 @@ class TestConfigParser:
             """
         )
         assert config.get("x.y") == 1
-        assert set(config.get("x").keys()) == {'y'}
+        assert set(config.get("x").keys()) == {"y"}
 
     def test_self_ref_substitution_dict_recurse(self):
         with pytest.raises(ConfigSubstitutionException):
@@ -929,9 +914,9 @@ class TestConfigParser:
             )
 
     def test_self_ref_substitution_dict_merge(self):
-        '''
+        """
         Example from HOCON spec
-        '''
+        """
         config = ConfigFactory.parse_string(
             """
             foo : { a : { c : 1 } }
@@ -939,13 +924,13 @@ class TestConfigParser:
             foo : { a : 2 }
             """
         )
-        assert config.get('foo') == {'a': 2, 'c': 1}
-        assert set(config.keys()) == {'foo'}
+        assert config.get("foo") == {"a": 2, "c": 1}
+        assert set(config.keys()) == {"foo"}
 
     def test_self_ref_substitution_dict_otherfield(self):
-        '''
+        """
         Example from HOCON spec
-        '''
+        """
         config = ConfigFactory.parse_string(
             """
             bar : {
@@ -954,13 +939,13 @@ class TestConfigParser:
             }
             """
         )
-        assert config.get("bar") == {'foo': 42, 'baz': 42}
-        assert set(config.keys()) == {'bar'}
+        assert config.get("bar") == {"foo": 42, "baz": 42}
+        assert set(config.keys()) == {"bar"}
 
     def test_self_ref_substitution_dict_otherfield_merged_in(self):
-        '''
+        """
         Example from HOCON spec
-        '''
+        """
         config = ConfigFactory.parse_string(
             """
             bar : {
@@ -970,13 +955,13 @@ class TestConfigParser:
             bar : { foo : 43 }
             """
         )
-        assert config.get("bar") == {'foo': 43, 'baz': 43}
-        assert set(config.keys()) == {'bar'}
+        assert config.get("bar") == {"foo": 43, "baz": 43}
+        assert set(config.keys()) == {"bar"}
 
     def test_self_ref_substitution_dict_otherfield_merged_in_mutual(self):
-        '''
+        """
         Example from HOCON spec
-        '''
+        """
         config = ConfigFactory.parse_string(
             """
             // bar.a should end up as 4
@@ -987,21 +972,21 @@ class TestConfigParser:
             foo.d = 4
             """
         )
-        assert config.get("bar") == {'a': 4, 'b': 3}
-        assert config.get("foo") == {'c': 3, 'd': 4}
-        assert set(config.keys()) == {'bar', 'foo'}
+        assert config.get("bar") == {"a": 4, "b": 3}
+        assert config.get("foo") == {"c": 3, "d": 4}
+        assert set(config.keys()) == {"bar", "foo"}
 
     def test_self_ref_substitution_string_opt_concat(self):
-        '''
+        """
         Example from HOCON spec
-        '''
+        """
         config = ConfigFactory.parse_string(
             """
             a = ${?a}foo
             """
         )
-        assert config.get("a") == 'foo'
-        assert set(config.keys()) == {'a'}
+        assert config.get("a") == "foo"
+        assert set(config.keys()) == {"a"}
 
     def test_self_ref_substitution_dict_recurse_part(self):
         with pytest.raises(ConfigSubstitutionException):
@@ -1021,7 +1006,7 @@ class TestConfigParser:
             x = {y: -1} ${x} {d: 4}
             """
         )
-        assert config.get("x") == {'a': 1, 'b': 2, 'c': 3, 'z': 0, 'y': -1, 'd': 4}
+        assert config.get("x") == {"a": 1, "b": 2, "c": 3, "z": 0, "y": -1, "d": 4}
 
     def test_self_ref_child(self):
         config = ConfigFactory.parse_string(
@@ -1036,7 +1021,7 @@ class TestConfigParser:
 
             """
         )
-        assert config.get("a") == {'b': 3, 'c': [1, 2], 'd': {'foo': 'bar'}}
+        assert config.get("a") == {"b": 3, "c": [1, 2], "d": {"foo": "bar"}}
 
     def test_concat_multi_line_string(self):
         config = ConfigFactory.parse_string(
@@ -1047,7 +1032,9 @@ class TestConfigParser:
             """
         )
 
-        assert [x.strip() for x in config['common_modules'].split() if x.strip(' ') != ''] == ['perl', 'java', 'python']
+        assert [
+            x.strip() for x in config["common_modules"].split() if x.strip(" ") != ""
+        ] == ["perl", "java", "python"]
 
     def test_concat_multi_line_list(self):
         config = ConfigFactory.parse_string(
@@ -1058,7 +1045,7 @@ class TestConfigParser:
             """
         )
 
-        assert config['common_modules'] == ['perl', 'java', 'python']
+        assert config["common_modules"] == ["perl", "java", "python"]
 
     def test_concat_multi_line_dict(self):
         config = ConfigFactory.parse_string(
@@ -1069,12 +1056,12 @@ class TestConfigParser:
             """
         )
 
-        assert config['common_modules'] == {'a': 'perl', 'b': 'java', 'c': 'python'}
+        assert config["common_modules"] == {"a": "perl", "b": "java", "c": "python"}
 
     def test_parse_URL_from_samples(self):
         config = ConfigFactory.parse_URL("file:samples/aws.conf")
-        assert config.get('data-center-generic.cluster-size') == 6
-        assert config.get('large-jvm-opts') == ['-XX:+UseParNewGC', '-Xm16g']
+        assert config.get("data-center-generic.cluster-size") == 6
+        assert config.get("large-jvm-opts") == ["-XX:+UseParNewGC", "-Xm16g"]
 
     def test_parse_URL_from_invalid(self):
         config = ConfigFactory.parse_URL("https://nosuchurl")
@@ -1082,25 +1069,25 @@ class TestConfigParser:
 
     def test_include_dict_from_samples(self):
         config = ConfigFactory.parse_file("samples/animals.conf")
-        assert config.get('cat.garfield.say') == 'meow'
-        assert config.get('dog.mutt.hates.garfield.say') == 'meow'
+        assert config.get("cat.garfield.say") == "meow"
+        assert config.get("dog.mutt.hates.garfield.say") == "meow"
 
     def test_include_glob_dict_from_samples(self):
         config = ConfigFactory.parse_file("samples/all_animals.conf")
-        assert config.get('animals.garfield.say') == 'meow'
-        assert config.get('animals.mutt.hates.garfield.say') == 'meow'
+        assert config.get("animals.garfield.say") == "meow"
+        assert config.get("animals.mutt.hates.garfield.say") == "meow"
 
     def test_include_glob_list_from_samples(self):
         config = ConfigFactory.parse_file("samples/all_bars.conf")
-        bars = config.get_list('bars')
+        bars = config.get_list("bars")
         assert len(bars) == 10
 
-        names = {bar['name'] for bar in bars}
-        types = {bar['type'] for bar in bars if 'type' in bar}
-        print(types, '(((((')
-        assert 'Bloody Mary' in names
-        assert 'Homer\'s favorite coffee' in names
-        assert 'milk' in types
+        names = {bar["name"] for bar in bars}
+        types = {bar["type"] for bar in bars if "type" in bar}
+        print(types, "(((((")
+        assert "Bloody Mary" in names
+        assert "Homer's favorite coffee" in names
+        assert "milk" in types
 
     def test_list_of_dicts(self):
         config = ConfigFactory.parse_string(
@@ -1111,10 +1098,7 @@ class TestConfigParser:
             ]
             """
         )
-        assert config['a'] == [
-            {'a': 1, 'b': 2},
-            {'a': 3, 'c': 4}
-        ]
+        assert config["a"] == [{"a": 1, "b": 2}, {"a": 3, "c": 4}]
 
     def test_list_of_lists(self):
         config = ConfigFactory.parse_string(
@@ -1125,10 +1109,7 @@ class TestConfigParser:
             ]
             """
         )
-        assert config['a'] == [
-            [1, 2],
-            [3, 4]
-        ]
+        assert config["a"] == [[1, 2], [3, 4]]
 
     def test_list_of_dicts_with_merge(self):
         config = ConfigFactory.parse_string(
@@ -1141,10 +1122,10 @@ class TestConfigParser:
             ]
             """
         )
-        assert config['a'] == [
-            {'a': 1, 'b': 2, 'f': 4},
-            {'a': 3, 'c': 4, 'f': 4},
-            {'a': 3, 'c': 6, 'f': 4}
+        assert config["a"] == [
+            {"a": 1, "b": 2, "f": 4},
+            {"a": 3, "c": 4, "f": 4},
+            {"a": 3, "c": 6, "f": 4},
         ]
 
     def test_list_of_lists_with_merge(self):
@@ -1158,25 +1139,22 @@ class TestConfigParser:
             ]
             """
         )
-        assert config['a'] == [
-            [5, 6, 1, 2],
-            [3, 4, 5, 6],
-            [1, 2, 5, 6, 7, 8]
-        ]
+        assert config["a"] == [[5, 6, 1, 2], [3, 4, 5, 6], [1, 2, 5, 6, 7, 8]]
 
     def test_invalid_assignment(self):
         with pytest.raises(ParseSyntaxException):
-            ConfigFactory.parse_string('common_modules [perl]')
+            ConfigFactory.parse_string("common_modules [perl]")
 
         with pytest.raises(ParseException):
-            ConfigFactory.parse_string('common_modules {} {perl: 1}')
+            ConfigFactory.parse_string("common_modules {} {perl: 1}")
 
         with pytest.raises(ParseSyntaxException):
             ConfigFactory.parse_string(
                 """
                 a = {f: 5}
                 common_modules ${a} {perl: 1}
-                """)
+                """
+            )
 
     def test_invalid_dict(self):
         with pytest.raises(ParseSyntaxException):
@@ -1186,14 +1164,15 @@ class TestConfigParser:
                     f: 5
                     g
                 }
-                """)
+                """
+            )
 
         with pytest.raises(ParseSyntaxException):
-            ConfigFactory.parse_string('a = {g}')
+            ConfigFactory.parse_string("a = {g}")
 
     def test_include_file(self):
-        with tempfile.NamedTemporaryFile('w') as fdin:
-            fdin.write('[1, 2]')
+        with tempfile.NamedTemporaryFile("w") as fdin:
+            fdin.write("[1, 2]")
             fdin.flush()
 
             config1 = ConfigFactory.parse_string(
@@ -1201,27 +1180,33 @@ class TestConfigParser:
                 a: [
                     include "{tmp_file}"
                 ]
-                """.format(tmp_file=fdin.name)
+                """.format(
+                    tmp_file=fdin.name
+                )
             )
-            assert config1['a'] == [1, 2]
+            assert config1["a"] == [1, 2]
 
             config2 = ConfigFactory.parse_string(
                 """
                 a: [
                     include file("{tmp_file}")
                 ]
-                """.format(tmp_file=fdin.name)
+                """.format(
+                    tmp_file=fdin.name
+                )
             )
-            assert config2['a'] == [1, 2]
+            assert config2["a"] == [1, 2]
 
             config3 = ConfigFactory.parse_string(
                 """
                 a: [
                     include url("file://{tmp_file}")
                 ]
-                """.format(tmp_file=fdin.name)
+                """.format(
+                    tmp_file=fdin.name
+                )
             )
-            assert config3['a'] == [1, 2]
+            assert config3["a"] == [1, 2]
 
     def test_include_missing_file(self):
         config1 = ConfigFactory.parse_string(
@@ -1233,7 +1218,7 @@ class TestConfigParser:
             ]
             """
         )
-        assert config1['a'] == [3, 4]
+        assert config1["a"] == [3, 4]
 
     def test_include_required_file(self):
         config = ConfigFactory.parse_string(
@@ -1244,14 +1229,7 @@ class TestConfigParser:
             }
             """
         )
-        expected = {
-            'a': {
-                'garfield': {
-                    'say': 'meow'
-                },
-                't': 2
-            }
-        }
+        expected = {"a": {"garfield": {"say": "meow"}, "t": 2}}
         assert expected == config
 
         config2 = ConfigFactory.parse_string(
@@ -1291,12 +1269,12 @@ class TestConfigParser:
     def test_include_package_file(self, monkeypatch):
         temp_dir = tempfile.mkdtemp()
         try:
-            module_dir = os.path.join(temp_dir, 'my_module')
-            module_conf = os.path.join(module_dir, 'my.conf')
+            module_dir = os.path.join(temp_dir, "my_module")
+            module_conf = os.path.join(module_dir, "my.conf")
             # create the module folder and necessary files (__init__ and config)
             os.mkdir(module_dir)
-            open(os.path.join(module_dir, '__init__.py'), 'a').close()
-            with open(module_conf, 'w') as fdin:
+            open(os.path.join(module_dir, "__init__.py"), "a").close()
+            with open(module_conf, "w") as fdin:
                 fdin.write("{c: 3}")
             # add the temp dir to sys.path so that 'my_module' can be discovered
             monkeypatch.syspath_prepend(temp_dir)
@@ -1309,19 +1287,14 @@ class TestConfigParser:
                 """
             )
             # check that the contents of both config files are available
-            assert dict(config.as_plain_ordered_dict()) == {'a': 1, 'b': 2, 'c': 3}
+            assert dict(config.as_plain_ordered_dict()) == {"a": 1, "b": 2, "c": 3}
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_include_dict(self):
-        expected_res = {
-            'a': 1,
-            'b': 2,
-            'c': 3,
-            'd': 4
-        }
-        with tempfile.NamedTemporaryFile('w') as fdin:
-            fdin.write('{a: 1, b: 2}')
+        expected_res = {"a": 1, "b": 2, "c": 3, "d": 4}
+        with tempfile.NamedTemporaryFile("w") as fdin:
+            fdin.write("{a: 1, b: 2}")
             fdin.flush()
 
             config1 = ConfigFactory.parse_string(
@@ -1331,9 +1304,11 @@ class TestConfigParser:
                     c: 3
                     d: 4
                 }}
-                """.format(tmp_file=fdin.name)
+                """.format(
+                    tmp_file=fdin.name
+                )
             )
-            assert config1['a'] == expected_res
+            assert config1["a"] == expected_res
 
             config2 = ConfigFactory.parse_string(
                 """
@@ -1342,9 +1317,11 @@ class TestConfigParser:
                     d: 4
                     include "{tmp_file}"
                 }}
-                """.format(tmp_file=fdin.name)
+                """.format(
+                    tmp_file=fdin.name
+                )
             )
-            assert config2['a'] == expected_res
+            assert config2["a"] == expected_res
 
             config3 = ConfigFactory.parse_string(
                 """
@@ -1353,50 +1330,56 @@ class TestConfigParser:
                     include "{tmp_file}"
                     d: 4
                 }}
-                """.format(tmp_file=fdin.name)
+                """.format(
+                    tmp_file=fdin.name
+                )
             )
-            assert config3['a'] == expected_res
+            assert config3["a"] == expected_res
 
     def test_include_substitution(self):
-        with tempfile.NamedTemporaryFile('w') as fdin:
-            fdin.write('y = ${x}')
+        with tempfile.NamedTemporaryFile("w") as fdin:
+            fdin.write("y = ${x}")
             fdin.flush()
 
             config = ConfigFactory.parse_string(
                 """
                 include "{tmp_file}"
                 x = 42
-                """.format(tmp_file=fdin.name)
+                """.format(
+                    tmp_file=fdin.name
+                )
             )
-            assert config['x'] == 42
-            assert config['y'] == 42
+            assert config["x"] == 42
+            assert config["y"] == 42
 
     @pytest.mark.xfail
     def test_include_substitution2(self):
-        with tempfile.NamedTemporaryFile('w') as fdin:
-            fdin.write('{ x : 10, y : ${x} }')
+        with tempfile.NamedTemporaryFile("w") as fdin:
+            fdin.write("{ x : 10, y : ${x} }")
             fdin.flush()
 
             config = ConfigFactory.parse_string(
                 """
                 {
-                    a : { include """ + '"' + fdin.name + """" }
+                    a : { include """
+                + '"'
+                + fdin.name
+                + """" }
                     a : { x : 42 }
                 }
                 """
             )
-            assert config['a']['x'] == 42
-            assert config['a']['y'] == 42
+            assert config["a"]["x"] == 42
+            assert config["a"]["y"] == 42
 
     def test_var_with_include_keyword(self):
         config = ConfigFactory.parse_string(
             """
             include-database=true
-            """)
+            """
+        )
 
-        assert config == {
-            'include-database': True
-        }
+        assert config == {"include-database": True}
 
     def test_substitution_override(self):
         config = ConfigFactory.parse_string(
@@ -1417,10 +1400,11 @@ class TestConfigParser:
                 pass = ${pass}
             }
 
-            """)
+            """
+        )
 
-        assert config['database.user'] == 'test_user'
-        assert config['database.pass'] == 'test_pass'
+        assert config["database.user"] == "test_user"
+        assert config["database.pass"] == "test_pass"
 
     def test_substitution_flat_override(self):
         config = ConfigFactory.parse_string(
@@ -1431,10 +1415,11 @@ class TestConfigParser:
                 name = ${?NOT_EXISTS}
                 pass = ${?NOT_EXISTS}
             }
-            """)
+            """
+        )
 
-        assert config['database.name'] == 'peopledb'
-        assert config['database.pass'] == 'peoplepass'
+        assert config["database.name"] == "peopledb"
+        assert config["database.pass"] == "peoplepass"
 
     def test_substitution_multiple_override(self):
         config = ConfigFactory.parse_string(
@@ -1445,10 +1430,11 @@ class TestConfigParser:
             c: ${b} ${a}
             d: ${a} ${b}
             d: ${a} bar
-            """)
+            """
+        )
 
-        assert config['c'] == 'foo 1'
-        assert config['d'] == '1 bar'
+        assert config["c"] == "foo 1"
+        assert config["d"] == "1 bar"
 
     def test_substitution_nested_override(self):
         config = ConfigFactory.parse_string(
@@ -1463,33 +1449,39 @@ class TestConfigParser:
                 pass = ${?pass}
             }
 
-            """)
+            """
+        )
 
-        assert config['database.name'] == 'peopledb'
-        assert config['database.pass'] == 'peoplepass'
+        assert config["database.name"] == "peopledb"
+        assert config["database.pass"] == "peoplepass"
 
     def test_optional_with_merge(self):
         unresolved = ConfigFactory.parse_string(
             """
             foo: 42
             foo: ${?a}
-            """, resolve=False)
+            """,
+            resolve=False,
+        )
         source = ConfigFactory.parse_string(
             """
             b: 14
-            """)
+            """
+        )
         config = unresolved.with_fallback(source)
-        assert config['foo'] == 42
+        assert config["foo"] == 42
         config = source.with_fallback(unresolved)
-        assert config['foo'] == 42
+        assert config["foo"] == 42
 
     def test_fallback_with_resolve(self):
         config3 = ConfigFactory.parse_string("c=5")
         config2 = ConfigFactory.parse_string("b=${c}", resolve=False)
-        config1 = ConfigFactory.parse_string("a=${b}", resolve=False) \
-            .with_fallback(config2, resolve=False) \
+        config1 = (
+            ConfigFactory.parse_string("a=${b}", resolve=False)
+            .with_fallback(config2, resolve=False)
             .with_fallback(config3)
-        assert {'a': 5, 'b': 5, 'c': 5} == config1
+        )
+        assert {"a": 5, "b": 5, "c": 5} == config1
 
     def test_optional_substitution(self):
         config = ConfigFactory.parse_string(
@@ -1500,13 +1492,14 @@ class TestConfigParser:
             e = ${?a}
             g = ${?c1} ${?c2}
             h = ${?c1} ${?c2} 1
-            """)
+            """
+        )
 
-        assert 'b' not in config
-        assert config['d'] == 4
-        assert config['e'] == 45
-        assert 'g' not in config
-        assert config['h'] == 1
+        assert "b" not in config
+        assert config["d"] == 4
+        assert config["e"] == 45
+        assert "g" not in config
+        assert config["h"] == 1
 
     def test_cascade_optional_substitution(self):
         config = ConfigFactory.parse_string(
@@ -1514,11 +1507,9 @@ class TestConfigParser:
               num = 3
               retries_msg = You have ${num} retries
               retries_msg = ${?CUSTOM_MSG}
-            """)
-        assert config == {
-            'num': 3,
-            'retries_msg': 'You have 3 retries'
-        }
+            """
+        )
+        assert config == {"num": 3, "retries_msg": "You have 3 retries"}
 
     def test_substitution_cycle(self):
         with pytest.raises(ConfigSubstitutionException):
@@ -1527,7 +1518,8 @@ class TestConfigParser:
                 a = ${b}
                 b = ${c}
                 c = ${a}
-                """)
+                """
+            )
 
     def test_assign_number_with_eol(self):
         config = ConfigFactory.parse_string(
@@ -1544,9 +1536,9 @@ class TestConfigParser:
             6
             """
         )
-        assert config['a'] == 4
-        assert config['b'] == 5
-        assert config['c'] == 6
+        assert config["a"] == 4
+        assert config["b"] == 5
+        assert config["c"] == 6
 
     def test_assign_int(self):
         config = ConfigFactory.parse_string(
@@ -1558,11 +1550,11 @@ class TestConfigParser:
         )
 
         # on python 3 long will be an int but on python 2 long with be a long
-        assert config['short'] == 12
-        assert isinstance(config['short'], int)
-        assert config['long'] == 12321321837612378126213217321
-        assert isinstance(config['negative'], int)
-        assert config['negative'] == -15
+        assert config["short"] == 12
+        assert isinstance(config["short"], int)
+        assert config["long"] == 12321321837612378126213217321
+        assert isinstance(config["negative"], int)
+        assert config["negative"] == -15
 
     def test_assign_float(self):
         config = ConfigFactory.parse_string(
@@ -1575,10 +1567,10 @@ class TestConfigParser:
         )
 
         # on python 3 long will be an int but on python 2 long with be a long
-        assert config['a'] == 121.22
-        assert config['b'] == -121.22
-        assert config['c'] == .54
-        assert config['d'] == -.54
+        assert config["a"] == 121.22
+        assert config["b"] == -121.22
+        assert config["c"] == 0.54
+        assert config["d"] == -0.54
 
     def test_sci_real(self):
         """
@@ -1596,13 +1588,13 @@ class TestConfigParser:
         )
 
         # on python 3 long will be an int but on python 2 long with be a long
-        assert config['short'] == 12.12321
+        assert config["short"] == 12.12321
 
-        assert config['long1'] == 121.22E3423432
-        assert config['neg_long1'] == 121.22E-1
+        assert config["long1"] == 121.22e3423432
+        assert config["neg_long1"] == 121.22e-1
 
-        assert config['long2'] == 121.22E3423432
-        assert config['neg_long2'] == 121.22E-3
+        assert config["long2"] == 121.22e3423432
+        assert config["neg_long2"] == 121.22e-3
 
     def test_assign_strings_with_eol(self):
         config = ConfigFactory.parse_string(
@@ -1619,9 +1611,9 @@ class TestConfigParser:
             "c"
             """
         )
-        assert config['a'] == 'a'
-        assert config['b'] == 'b'
-        assert config['c'] == 'c'
+        assert config["a"] == "a"
+        assert config["b"] == "b"
+        assert config["c"] == "c"
 
     def test_assign_list_numbers_with_eol(self):
         config = ConfigFactory.parse_string(
@@ -1646,9 +1638,9 @@ class TestConfigParser:
             ]
             """
         )
-        assert config['a'] == [1, 2]
-        assert config['b'] == [3, 4]
-        assert config['c'] == [5, 6]
+        assert config["a"] == [1, 2]
+        assert config["b"] == [3, 4]
+        assert config["c"] == [5, 6]
 
     def test_assign_list_strings_with_eol(self):
         config = ConfigFactory.parse_string(
@@ -1673,9 +1665,9 @@ class TestConfigParser:
             ]
             """
         )
-        assert config['a'] == ['a', 'b']
-        assert config['b'] == ['c', 'd']
-        assert config['c'] == ['e', 'f']
+        assert config["a"] == ["a", "b"]
+        assert config["b"] == ["c", "d"]
+        assert config["c"] == ["e", "f"]
 
     def test_assign_dict_strings_with_equal_sign_with_eol(self):
         config = ConfigFactory.parse_string(
@@ -1700,9 +1692,9 @@ class TestConfigParser:
             }
             """
         )
-        assert config['a'] == {'a': 1, 'b': 2}
-        assert config['b'] == {'c': 3, 'd': 4}
-        assert config['c'] == {'e': 5, 'f': 6}
+        assert config["a"] == {"a": 1, "b": 2}
+        assert config["b"] == {"c": 3, "d": 4}
+        assert config["c"] == {"e": 5, "f": 6}
 
     def test_assign_dict_strings_no_equal_sign_with_eol(self):
         config = ConfigFactory.parse_string(
@@ -1727,9 +1719,9 @@ class TestConfigParser:
             }
             """
         )
-        assert config['a'] == {'a': 1, 'b': 2}
-        assert config['b'] == {'c': 3, 'd': 4}
-        assert config['c'] == {'e': 5, 'f': 6}
+        assert config["a"] == {"a": 1, "b": 2}
+        assert config["b"] == {"c": 3, "d": 4}
+        assert config["c"] == {"e": 5, "f": 6}
 
     def test_substitutions_overwrite(self):
         config1 = ConfigFactory.parse_string(
@@ -1740,7 +1732,7 @@ class TestConfigParser:
             """
         )
 
-        assert config1['a'] == 5
+        assert config1["a"] == 5
 
         config2 = ConfigFactory.parse_string(
             """
@@ -1763,9 +1755,9 @@ class TestConfigParser:
             """
         )
 
-        assert config2['database']['host'] == 'other.host.net'
-        assert config2['database']['port'] == 433
-        assert config2['database']['url'] == 'other.host.net:433'
+        assert config2["database"]["host"] == "other.host.net"
+        assert config2["database"]["port"] == 433
+        assert config2["database"]["url"] == "other.host.net:433"
 
     def test_fallback_substitutions_overwrite(self):
         config1 = ConfigFactory.parse_string(
@@ -1786,11 +1778,7 @@ class TestConfigParser:
 
         config3 = config1.with_fallback(config2)
 
-        assert config3['a'] == {
-            'b': 1,
-            'c': 2,
-            'd': 3
-        }
+        assert config3["a"] == {"b": 1, "c": 2, "d": 3}
 
         config4 = ConfigFactory.parse_string(
             """
@@ -1802,14 +1790,11 @@ class TestConfigParser:
             """
             longName: "long "${?name}
             """,
-            resolve=False
+            resolve=False,
         )
 
         config6 = config4.with_fallback(config5)
-        assert config6 == {
-            'longName': 'long foo',
-            'name': 'foo'
-        }
+        assert config6 == {"longName": "long foo", "name": "foo"}
 
     def test_fallback_substitutions_overwrite_file(self):
         config1 = ConfigFactory.parse_string(
@@ -1822,13 +1807,13 @@ class TestConfigParser:
         )
 
         # use unicode path here for regression testing https://github.com/chimpler/pyhocon/issues/44
-        config2 = config1.with_fallback('samples/aws.conf')
+        config2 = config1.with_fallback("samples/aws.conf")
         assert config2 == {
-            'data-center-generic': {'cluster-size': 8},
-            'data-center-east': {'cluster-size': 8, 'name': 'east'},
-            'misc': 'mist',
-            'default-jvm-opts': ['-XX:+UseParNewGC'],
-            'large-jvm-opts': ['-XX:+UseParNewGC', '-Xm16g']
+            "data-center-generic": {"cluster-size": 8},
+            "data-center-east": {"cluster-size": 8, "name": "east"},
+            "misc": "mist",
+            "default-jvm-opts": ["-XX:+UseParNewGC"],
+            "large-jvm-opts": ["-XX:+UseParNewGC", "-Xm16g"],
         }
 
     def test_fallback_self_ref_substitutions_append(self):
@@ -1841,7 +1826,7 @@ class TestConfigParser:
             """
             list = ${list} [ 4, 5, 6 ]
             """,
-            resolve=False
+            resolve=False,
         )
         config2 = config2.with_fallback(config1)
         assert config2.get("list") == [1, 2, 3, 4, 5, 6]
@@ -1856,7 +1841,7 @@ class TestConfigParser:
             """
             list += [ 4, 5, 6 ]
             """,
-            resolve=False
+            resolve=False,
         )
         config2 = config2.with_fallback(config1)
         assert config2.get("list") == [1, 2, 3, 4, 5, 6]
@@ -1868,14 +1853,14 @@ class TestConfigParser:
             b : 1
             c : ${a} { d : [ ${b} ] }
             """,
-            resolve=False
+            resolve=False,
         )
         config2 = ConfigFactory.parse_string(
             """
             e : ${a} {
             }
             """,
-            resolve=False
+            resolve=False,
         )
         merged = ConfigTree.merge_configs(config1, config2)
         ConfigParser.resolve_substitutions(merged)
@@ -1888,21 +1873,21 @@ class TestConfigParser:
             b1 : {v2: 2 }
             b = [${b1}]
             """,
-            resolve=False
+            resolve=False,
         )
         config2 = ConfigFactory.parse_string(
             """
             b2 : ${x} {v2: 3}
             b += [${b2}]
             """,
-            resolve=False
+            resolve=False,
         )
         merged = ConfigTree.merge_configs(config1, config2)
         ConfigParser.resolve_substitutions(merged)
         b = merged.get("b")
         assert len(b) == 2
-        assert b[0] == {'v2': 2}
-        assert b[1] == {'v1': 1, 'v2': 3}
+        assert b[0] == {"v2": 2}
+        assert b[1] == {"v1": 1, "v2": 3}
 
     def test_self_merge_ref_substitutions_object3(self):
         config1 = ConfigFactory.parse_string(
@@ -1910,13 +1895,13 @@ class TestConfigParser:
             b1 : { v1: 1 }
             b = [${b1}]
             """,
-            resolve=False
+            resolve=False,
         )
         config2 = ConfigFactory.parse_string(
             """
             b1 : { v1: 2, v2: 3 }
             """,
-            resolve=False
+            resolve=False,
         )
         merged = ConfigTree.merge_configs(config1, config2)
         ConfigParser.resolve_substitutions(merged)
@@ -1935,10 +1920,10 @@ class TestConfigParser:
             """
             dict = ${dict} { y: 2 }
             """,
-            resolve=False
+            resolve=False,
         )
         config2 = config2.with_fallback(config1)
-        assert config2.get("dict") == {'x': 1, 'y': 2}
+        assert config2.get("dict") == {"x": 1, "y": 2}
 
     def test_fallback_self_ref_substitutions_concat_string(self):
         config1 = ConfigFactory.parse_string(
@@ -1950,10 +1935,10 @@ class TestConfigParser:
             """
             string = ${string}def
             """,
-            resolve=False
+            resolve=False,
         )
         result = config2.with_fallback(config1)
-        assert result.get("string") == 'abcdef'
+        assert result.get("string") == "abcdef"
 
         # test no mutation on config1
         assert result is not config1
@@ -1969,7 +1954,7 @@ class TestConfigParser:
         )
 
         config = root.get_config("mid").with_fallback(root)
-        assert config['a'] == 1 and config['b'] == 1
+        assert config["a"] == 1 and config["b"] == 1
 
     def test_object_field_substitution(self):
         config = ConfigFactory.parse_string(
@@ -1999,10 +1984,7 @@ class TestConfigParser:
             """
         )
 
-        assert config == {
-            'test_no_quotes': 'abc\n\n',
-            'test_quotes': 'abc\n\n'
-        }
+        assert config == {"test_no_quotes": "abc\n\n", "test_quotes": "abc\n\n"}
 
     def test_multi_line_escape(self):
         config = ConfigFactory.parse_string(
@@ -2021,9 +2003,9 @@ with-escaped-newline-escape-sequence: \"\"\"
             """
         )
 
-        assert config['with-escaped-backslash'] == '\n\\\\\n'
-        assert config['with-newline-escape-sequence'] == '\n\\n\n'
-        assert config['with-escaped-newline-escape-sequence'] == '\n\\\\n\n'
+        assert config["with-escaped-backslash"] == "\n\\\\\n"
+        assert config["with-newline-escape-sequence"] == "\n\\n\n"
+        assert config["with-escaped-newline-escape-sequence"] == "\n\\\\n\n"
 
     def test_multiline_with_backslash(self):
         config = ConfigFactory.parse_string(
@@ -2031,41 +2013,36 @@ with-escaped-newline-escape-sequence: \"\"\"
             test = line1 \
 line2
 test2 = test
-            """)
+            """
+        )
 
-        assert config == {
-            'test': 'line1 line2',
-            'test2': 'test'
-        }
+        assert config == {"test": "line1 line2", "test2": "test"}
 
     def test_from_dict_with_dict(self):
         d = {
-            'banana': 3,
-            'apple': 4,
-            'pear': 1,
-            'orange': 2,
+            "banana": 3,
+            "apple": 4,
+            "pear": 1,
+            "orange": 2,
         }
         config = ConfigFactory.from_dict(d)
         assert config == d
 
     def test_from_dict_with_ordered_dict(self):
         d = OrderedDict()
-        d['banana'] = 3
-        d['apple'] = 4
-        d['pear'] = 1
-        d['orange'] = 2
+        d["banana"] = 3
+        d["apple"] = 4
+        d["pear"] = 1
+        d["orange"] = 2
         config = ConfigFactory.from_dict(d)
         assert config == d
 
     def test_from_dict_with_nested_dict(self):
         d = OrderedDict()
-        d['banana'] = 3
-        d['apple'] = 4
-        d['pear'] = 1
-        d['tree'] = {
-            'a': 'abc\ntest\n',
-            'b': [1, 2, 3]
-        }
+        d["banana"] = 3
+        d["apple"] = 4
+        d["pear"] = 1
+        d["tree"] = {"a": "abc\ntest\n", "b": [1, 2, 3]}
         config = ConfigFactory.from_dict(d)
         assert config == d
 
@@ -2087,12 +2064,12 @@ test2 = test
             """
         )
 
-        assert config.get_int('o1.foo.b') == 2
-        assert config.get_int('o2.foo.b') == 3
-        assert config.get_int('o3.foo.b') == 3
-        assert config.get_int('o1.foo.c', default=42) == 42
-        assert config.get_int('o3.foo.a') == 1
-        assert config.get_int('o3.foo.c') == 4
+        assert config.get_int("o1.foo.b") == 2
+        assert config.get_int("o2.foo.b") == 3
+        assert config.get_int("o3.foo.b") == 3
+        assert config.get_int("o1.foo.c", default=42) == 42
+        assert config.get_int("o3.foo.a") == 1
+        assert config.get_int("o3.foo.c") == 4
 
     def test_issue_75(self):
         config = ConfigFactory.parse_string(
@@ -2108,9 +2085,9 @@ test2 = test
             """
         )
 
-        assert config.get_list('base.bar') == ["a"]
-        assert config.get_list('sub.baz') == ["a", "b"]
-        assert config.get_list('sub2.baz') == ["a", "b"]
+        assert config.get_list("base.bar") == ["a"]
+        assert config.get_list("sub.baz") == ["a", "b"]
+        assert config.get_list("sub2.baz") == ["a", "b"]
 
     def test_plain_ordered_dict(self):
         config = ConfigFactory.parse_string(
@@ -2118,7 +2095,7 @@ test2 = test
             e : ${a} {
             }
             """,
-            resolve=False
+            resolve=False,
         )
         with pytest.raises(ConfigException):
             config.as_plain_ordered_dict()
@@ -2129,33 +2106,34 @@ test2 = test
             no_trailing_ws = "foo"  "bar  "
             trailing_ws = "foo"  "bar  "{ws}
             trailing_ws_with_comment = "foo"  "bar  "{ws}// comment
-            """.format(ws='   '))
+            """.format(
+                ws="   "
+            )
+        )
 
         assert config == {
-            'no_trailing_ws': "foo  bar  ",
-            'trailing_ws': "foo  bar  ",
-            'trailing_ws_with_comment': "foo  bar  "
+            "no_trailing_ws": "foo  bar  ",
+            "trailing_ws": "foo  bar  ",
+            "trailing_ws_with_comment": "foo  bar  ",
         }
 
     def test_unquoted_strings_with_ws(self):
         config = ConfigFactory.parse_string(
             """
             a = foo  bar
-            """)
+            """
+        )
 
-        assert config == {
-            'a': 'foo  bar'
-        }
+        assert config == {"a": "foo  bar"}
 
     def test_quoted_unquoted_strings_with_ws(self):
         config = ConfigFactory.parse_string(
             """
             a = foo  "bar"   dummy
-            """)
+            """
+        )
 
-        assert config == {
-            'a': 'foo  bar   dummy'
-        }
+        assert config == {"a": "foo  bar   dummy"}
 
     def test_quoted_unquoted_strings_with_ws_substitutions(self):
         config = ConfigFactory.parse_string(
@@ -2165,14 +2143,15 @@ test2 = test
             a = foo  "bar"  ${b} dummy
             c = foo          ${x}        bv
             d = foo          ${x}        43
-            """)
+            """
+        )
 
         assert config == {
-            'x': 5,
-            'b': 'test',
-            'a': 'foo  bar  test dummy',
-            'c': 'foo          5        bv',
-            'd': 'foo          5        43'
+            "x": 5,
+            "b": "test",
+            "a": "foo  bar  test dummy",
+            "c": "foo          5        bv",
+            "d": "foo          5        43",
         }
 
     def test_complex_substitutions(self):
@@ -2186,14 +2165,16 @@ test2 = test
             c: { }
             d: { pc: ${b.pa} }
             e: ${b}
-            """, resolve=True)
+            """,
+            resolve=True,
+        )
 
         assert config == {
-            'a': 1,
-            'b': {'pa': [1], 'pb': [1]},
-            'c': {},
-            'd': {'pc': [1]},
-            'e': {'pa': [1], 'pb': [1]}
+            "a": 1,
+            "b": {"pa": [1], "pb": [1]},
+            "c": {},
+            "d": {"pc": [1]},
+            "e": {"pa": [1], "pb": [1]},
         }
 
     def test_assign_next_line(self):
@@ -2204,64 +2185,57 @@ test2 = test
 
             c =
             5
-            """)
+            """
+        )
 
-        assert config == {
-            'a': 'abc',
-            'c': 5
-        }
+        assert config == {"a": "abc", "c": 5}
 
-    @mock.patch.dict(os.environ, STRING_VAR='value_from_environment')
+    @mock.patch.dict(os.environ, STRING_VAR="value_from_environment")
     def test_string_from_environment(self):
         config = ConfigFactory.parse_string(
             """
             string_from_env = ${STRING_VAR}
-            """)
-        assert config == {
-            'string_from_env': 'value_from_environment'
-        }
+            """
+        )
+        assert config == {"string_from_env": "value_from_environment"}
 
-    @mock.patch.dict(os.environ, STRING_VAR='value_from_environment')
+    @mock.patch.dict(os.environ, STRING_VAR="value_from_environment")
     def test_string_from_environment_self_ref(self):
         config = ConfigFactory.parse_string(
             """
             STRING_VAR = ${STRING_VAR}
-            """)
-        assert config == {
-            'STRING_VAR': 'value_from_environment'
-        }
+            """
+        )
+        assert config == {"STRING_VAR": "value_from_environment"}
 
-    @mock.patch.dict(os.environ, STRING_VAR='value_from_environment')
+    @mock.patch.dict(os.environ, STRING_VAR="value_from_environment")
     def test_string_from_environment_self_ref_optional(self):
         config = ConfigFactory.parse_string(
             """
             STRING_VAR = ${?STRING_VAR}
-            """)
-        assert config == {
-            'STRING_VAR': 'value_from_environment'
-        }
+            """
+        )
+        assert config == {"STRING_VAR": "value_from_environment"}
 
-    @mock.patch.dict(os.environ, TRUE_OR_FALSE='false')
+    @mock.patch.dict(os.environ, TRUE_OR_FALSE="false")
     def test_bool_from_environment(self):
         config = ConfigFactory.parse_string(
             """
             bool_from_env = ${TRUE_OR_FALSE}
-            """)
-        assert config == {
-            'bool_from_env': 'false'
-        }
-        assert config.get_bool('bool_from_env') is False
+            """
+        )
+        assert config == {"bool_from_env": "false"}
+        assert config.get_bool("bool_from_env") is False
 
-    @mock.patch.dict(os.environ, INT_VAR='5')
+    @mock.patch.dict(os.environ, INT_VAR="5")
     def test_int_from_environment(self):
         config = ConfigFactory.parse_string(
             """
             int_from_env = ${INT_VAR}
-            """)
-        assert config == {
-            'int_from_env': '5'
-        }
-        assert config.get_int('int_from_env') == 5
+            """
+        )
+        assert config == {"int_from_env": "5"}
+        assert config.get_int("int_from_env") == 5
 
     def test_unicode_dict_key(self):
         input_string = """
@@ -2279,58 +2253,59 @@ www.example-ö.com {
 
         config = ConfigFactory.parse_string(input_string)
 
-        assert config.get_string('www.sample.com.us.name') == 'first domain'
-        assert config.get_string('www.example-ö.com.us.name') == 'second domain'
+        assert config.get_string("www.sample.com.us.name") == "first domain"
+        assert config.get_string("www.example-ö.com.us.name") == "second domain"
         with pytest.raises(ConfigWrongTypeException):
-            config.put('www.example-ö', 'append_failure', append=True)
+            config.put("www.example-ö", "append_failure", append=True)
         with pytest.raises(ConfigMissingException):
-            config.get_string('missing_unicode_key_ö')
+            config.get_string("missing_unicode_key_ö")
         with pytest.raises(ConfigException):
-            config.get_bool('www.example-ö.com.us.name')
+            config.get_bool("www.example-ö.com.us.name")
         with pytest.raises(ConfigException):
-            config.get_list('www.example-ö.com.us.name')
+            config.get_list("www.example-ö.com.us.name")
         with pytest.raises(ConfigException):
-            config.get_config('www.example-ö.com.us.name')
+            config.get_config("www.example-ö.com.us.name")
         with pytest.raises(ConfigWrongTypeException):
-            config.get_string('www.example-ö.com.us.name.missing')
+            config.get_string("www.example-ö.com.us.name.missing")
 
     def test_with_comment_on_last_line(self):
         # Adress issue #102
-        config_tree = ConfigFactory.parse_string("""
+        config_tree = ConfigFactory.parse_string(
+            """
         foo: "1"
         bar: "2"
-        # DO NOT CHANGE ANY OF THE ABOVE SETTINGS!""")
-        assert config_tree == {
-            'foo': '1',
-            'bar': '2'
-        }
+        # DO NOT CHANGE ANY OF THE ABOVE SETTINGS!"""
+        )
+        assert config_tree == {"foo": "1", "bar": "2"}
 
     def test_triple_quotes_same_line(self):
         config_tree = ConfigFactory.parse_string('a:["""foo"""", "bar"]')
-        assert config_tree == {
-            'a': ['foo"', "bar"]
-        }
+        assert config_tree == {"a": ['foo"', "bar"]}
 
     def test_pop(self):
-        config_tree = ConfigFactory.parse_string('a:{b: 3, d: 6}')
-        assert 3 == config_tree.pop('a.b', 5)
-        assert 5 == config_tree.pop('a.c', 5)
-        expected = {
-            'a': {'d': 6}
-        }
+        config_tree = ConfigFactory.parse_string("a:{b: 3, d: 6}")
+        assert 3 == config_tree.pop("a.b", 5)
+        assert 5 == config_tree.pop("a.c", 5)
+        expected = {"a": {"d": 6}}
         assert expected == config_tree
 
     def test_merge_overriden(self):
         # Adress issue #110
         # ConfigValues must merge with its .overriden_value
         # if both are ConfigTree
-        config_tree = ConfigFactory.parse_string("""
-        foo: ${bar}
-        foo: ${baz}
-        bar:  {r: 1, s: 2}
-        baz:  {s: 3, t: 4}
-        """)
-        assert 'r' in config_tree['foo'] and 't' in config_tree['foo'] and config_tree['foo']['s'] == 3
+        config_tree = ConfigFactory.parse_string(
+            """
+            foo: ${bar}
+            foo: ${baz}
+            bar:  {r: 1, s: 2}
+            baz:  {s: 3, t: 4}
+            """
+        )
+        assert (
+            "r" in config_tree["foo"]
+            and "t" in config_tree["foo"]
+            and config_tree["foo"]["s"] == 3
+        )
 
     def test_attr_syntax(self):
         config = ConfigFactory.parse_string(
@@ -2339,7 +2314,8 @@ www.example-ö.com {
             b: {
               pb: 5
             }
-            """)
+            """
+        )
         assert 5 == config.b.pb
 
     def test_escape_quote(self):
@@ -2347,9 +2323,10 @@ www.example-ö.com {
             """
             quoted: "abc\\"test"
             unquoted: abc\\"test
-            """)
-        assert 'abc"test' == config['quoted']
-        assert 'abc"test' == config['unquoted']
+            """
+        )
+        assert 'abc"test' == config["quoted"]
+        assert 'abc"test' == config["unquoted"]
 
     def test_escape_quote_complex(self):
         config = ConfigFactory.parse_string(
@@ -2358,7 +2335,7 @@ www.example-ö.com {
             """
         )
 
-        assert '{"critical":"0.00","warning":"99.99"}' == config['value']
+        assert '{"critical":"0.00","warning":"99.99"}' == config["value"]
 
     def test_keys_with_slash(self):
         config = ConfigFactory.parse_string(
@@ -2366,10 +2343,11 @@ www.example-ö.com {
             /abc/cde1: abc
             "/abc/cde2": "cde"
             /abc/cde3: "fgh"
-            """)
-        assert 'abc' == config['/abc/cde1']
-        assert 'cde' == config['/abc/cde2']
-        assert 'fgh' == config['/abc/cde3']
+            """
+        )
+        assert "abc" == config["/abc/cde1"]
+        assert "cde" == config["/abc/cde2"]
+        assert "fgh" == config["/abc/cde3"]
 
     def test_mutation_values(self):
         config = ConfigFactory.parse_string(
@@ -2397,10 +2375,11 @@ www.example-ö.com {
               ${compilerCommon} ${substrate-suite}
               ${compilerCommon} ${substrate-suite}
             ]
-            """)
+            """
+        )
 
-        assert config.get("b1")[1]['VAR'] == 'right'
-        assert config.get("b2")[1]['VAR'] == 'right'
+        assert config.get("b1")[1]["VAR"] == "right"
+        assert config.get("b2")[1]["VAR"] == "right"
 
     def test_escape_sequences_json_equivalence(self):
         """
@@ -2420,14 +2399,14 @@ www.example-ö.com {
         }
         """
         expected = {
-            'plain-backslash': '\\',
-            'tab': '\t',
-            'no-tab': '\\t',
-            'newline': '\n',
-            'no-newline': '\\n',
-            'cr': '\r',
-            'no-cr': '\\r',
-            'windows': 'c:\\temp',
+            "plain-backslash": "\\",
+            "tab": "\t",
+            "no-tab": "\\t",
+            "newline": "\n",
+            "no-newline": "\\n",
+            "cr": "\r",
+            "no-cr": "\\r",
+            "windows": "c:\\temp",
         }
         config = ConfigFactory.parse_string(source)
         assert config == expected
@@ -2437,24 +2416,26 @@ www.example-ö.com {
 try:
     from dateutil.relativedelta import relativedelta
 
-    @pytest.mark.parametrize('data_set', [
-        ('a: 1 months', relativedelta(months=1)),
-        ('a: 1months', relativedelta(months=1)),
-        ('a: 2 month', relativedelta(months=2)),
-        ('a: 3 mo', relativedelta(months=3)),
-        ('a: 3mo', relativedelta(months=3)),
-        ('a: 3 mon', '3 mon'),
-
-        ('a: 1 years', relativedelta(years=1)),
-        ('a: 1years', relativedelta(years=1)),
-        ('a: 2 year', relativedelta(years=2)),
-        ('a: 3 y', relativedelta(years=3)),
-        ('a: 3y', relativedelta(years=3)),
-
-    ])
+    @pytest.mark.parametrize(
+        "data_set",
+        [
+            ("a: 1 months", relativedelta(months=1)),
+            ("a: 1months", relativedelta(months=1)),
+            ("a: 2 month", relativedelta(months=2)),
+            ("a: 3 mo", relativedelta(months=3)),
+            ("a: 3mo", relativedelta(months=3)),
+            ("a: 3 mon", "3 mon"),
+            ("a: 1 years", relativedelta(years=1)),
+            ("a: 1years", relativedelta(years=1)),
+            ("a: 2 year", relativedelta(years=2)),
+            ("a: 3 y", relativedelta(years=3)),
+            ("a: 3y", relativedelta(years=3)),
+        ],
+    )
     def test_parse_string_with_duration_optional_units(data_set):
         config = ConfigFactory.parse_string(data_set[0])
 
-        assert config['a'] == data_set[1]
+        assert config["a"] == data_set[1]
+
 except Exception:
     pass

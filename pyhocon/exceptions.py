@@ -1,5 +1,4 @@
 class ConfigException(Exception):
-
     def __init__(self, message, ex=None):
         super().__init__(message)
         self._exception = ex

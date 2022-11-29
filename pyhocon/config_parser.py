@@ -9,22 +9,43 @@ import socket
 import sys
 from datetime import timedelta
 from glob import glob
-from urllib.request import urlopen
-from urllib.error import HTTPError, URLError
 from importlib.util import find_spec
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 
 import pyparsing
-
-from pyparsing import (Forward, Group, Keyword, Literal, Optional,
-                       ParserElement, ParseSyntaxException, QuotedString,
-                       Regex, SkipTo, StringEnd, Suppress, TokenConverter,
-                       Word, ZeroOrMore, alphanums, alphas8bit, col, lineno,
-                       replaceWith, Or, nums, White, WordEnd)
+from pyparsing import (
+    Forward,
+    Group,
+    Keyword,
+    Literal,
+    Optional,
+    Or,
+    ParserElement,
+    ParseSyntaxException,
+    QuotedString,
+    Regex,
+    SkipTo,
+    StringEnd,
+    Suppress,
+    TokenConverter,
+    White,
+    Word,
+    WordEnd,
+    ZeroOrMore,
+    alphanums,
+    alphas8bit,
+    col,
+    lineno,
+    nums,
+    replaceWith,
+)
 
 # Fix deepcopy issue with pyparsing
 if sys.version_info >= (3, 8):
+
     def fixed_get_attr(self, item):
-        if item == '__deepcopy__':
+        if item == "__deepcopy__":
             raise AttributeError(item)
         try:
             return self[item]
@@ -33,11 +54,21 @@ if sys.version_info >= (3, 8):
 
     pyparsing.ParseResults.__getattr__ = fixed_get_attr
 
-from pyhocon.config_tree import (ConfigInclude, ConfigList, ConfigQuotedString,
-                                 ConfigSubstitution, ConfigTree,
-                                 ConfigUnquotedString, ConfigValues, NoneValue)
-from pyhocon.exceptions import (ConfigException, ConfigMissingException,
-                                ConfigSubstitutionException)
+from pyhocon.config_tree import (
+    ConfigInclude,
+    ConfigList,
+    ConfigQuotedString,
+    ConfigSubstitution,
+    ConfigTree,
+    ConfigUnquotedString,
+    ConfigValues,
+    NoneValue,
+)
+from pyhocon.exceptions import (
+    ConfigException,
+    ConfigMissingException,
+    ConfigSubstitutionException,
+)
 
 
 def find_package_dirs(name):
@@ -46,7 +77,7 @@ def find_package_dirs(name):
     # Here we should simulate it to keep the compatibility with older
     # versions.
     if not spec:
-        raise ImportError(f'No module named {name!r}')
+        raise ImportError(f"No module named {name!r}")
     return spec.submodule_search_locations
 
 
@@ -79,22 +110,28 @@ def period(period_value, period_unit):
     except Exception:
         from datetime import timedelta as period_impl
 
-    if period_unit == 'nanoseconds':
-        period_unit = 'microseconds'
+    if period_unit == "nanoseconds":
+        period_unit = "microseconds"
         period_value = int(period_value / 1000)
 
     arguments = dict(zip((period_unit,), (period_value,)))
 
-    if period_unit == 'milliseconds':
+    if period_unit == "milliseconds":
         return timedelta(**arguments)
 
     return period_impl(**arguments)
 
 
 class ConfigFactory:
-
     @classmethod
-    def parse_file(cls, filename, encoding='utf-8', required=True, resolve=True, unresolved_value=DEFAULT_SUBSTITUTION):
+    def parse_file(
+        cls,
+        filename,
+        encoding="utf-8",
+        required=True,
+        resolve=True,
+        unresolved_value=DEFAULT_SUBSTITUTION,
+    ):
         """Parse file
 
         :param filename: filename
@@ -113,17 +150,28 @@ class ConfigFactory:
         :type return: Config or list
         """
         try:
-            with codecs.open(filename, 'r', encoding=encoding) as fd:
+            with codecs.open(filename, "r", encoding=encoding) as fd:
                 content = fd.read()
-                return cls.parse_string(content, os.path.dirname(filename), resolve, unresolved_value)
+                return cls.parse_string(
+                    content, os.path.dirname(filename), resolve, unresolved_value
+                )
         except OSError as e:
             if required:
                 raise e
-            logger.warning(f'Cannot include file {filename}. File does not exist or cannot be read.')
+            logger.warning(
+                f"Cannot include file {filename}. File does not exist or cannot be read."
+            )
             return []
 
     @classmethod
-    def parse_URL(cls, url, timeout=None, resolve=True, required=False, unresolved_value=DEFAULT_SUBSTITUTION):
+    def parse_URL(
+        cls,
+        url,
+        timeout=None,
+        resolve=True,
+        required=False,
+        unresolved_value=DEFAULT_SUBSTITUTION,
+    ):
         """Parse URL
 
         :param url: url to parse
@@ -141,17 +189,21 @@ class ConfigFactory:
 
         try:
             with contextlib.closing(urlopen(url, timeout=socket_timeout)) as fd:
-                content =fd.read().decode('utf-8')
-                return cls.parse_string(content, os.path.dirname(url), resolve, unresolved_value)
+                content = fd.read().decode("utf-8")
+                return cls.parse_string(
+                    content, os.path.dirname(url), resolve, unresolved_value
+                )
         except (HTTPError, URLError) as e:
-            logger.warning(f'Cannot include url {url}. Resource is inaccessible.')
+            logger.warning(f"Cannot include url {url}. Resource is inaccessible.")
             if required:
                 raise e
             else:
                 return []
 
     @classmethod
-    def parse_string(cls, content, basedir=None, resolve=True, unresolved_value=DEFAULT_SUBSTITUTION):
+    def parse_string(
+        cls, content, basedir=None, resolve=True, unresolved_value=DEFAULT_SUBSTITUTION
+    ):
         """Parse string
 
         :param content: content to parse
@@ -196,33 +248,35 @@ class ConfigParser:
     """
 
     REPLACEMENTS = {
-        '\\\\': '\\',
-        '\\\n': '\n',
-        '\\n': '\n',
-        '\\r': '\r',
-        '\\t': '\t',
-        '\\=': '=',
-        '\\#': '#',
-        '\\!': '!',
+        "\\\\": "\\",
+        "\\\n": "\n",
+        "\\n": "\n",
+        "\\r": "\r",
+        "\\t": "\t",
+        "\\=": "=",
+        "\\#": "#",
+        "\\!": "!",
         '\\"': '"',
     }
 
     period_type_map = {
-        'nanoseconds': ['ns', 'nano', 'nanos', 'nanosecond', 'nanoseconds'],
-
-        'microseconds': ['us', 'micro', 'micros', 'microsecond', 'microseconds'],
-        'milliseconds': ['ms', 'milli', 'millis', 'millisecond', 'milliseconds'],
-        'seconds': ['s', 'second', 'seconds'],
-        'minutes': ['m', 'minute', 'minutes'],
-        'hours': ['h', 'hour', 'hours'],
-        'weeks': ['w', 'week', 'weeks'],
-        'days': ['d', 'day', 'days'],
-
+        "nanoseconds": ["ns", "nano", "nanos", "nanosecond", "nanoseconds"],
+        "microseconds": ["us", "micro", "micros", "microsecond", "microseconds"],
+        "milliseconds": ["ms", "milli", "millis", "millisecond", "milliseconds"],
+        "seconds": ["s", "second", "seconds"],
+        "minutes": ["m", "minute", "minutes"],
+        "hours": ["h", "hour", "hours"],
+        "weeks": ["w", "week", "weeks"],
+        "days": ["d", "day", "days"],
     }
 
     optional_period_type_map = {
-        'months': ['mo', 'month', 'months'],  # 'm' from hocon spec removed. conflicts with minutes syntax.
-        'years': ['y', 'year', 'years']
+        "months": [
+            "mo",
+            "month",
+            "months",
+        ],  # 'm' from hocon spec removed. conflicts with minutes syntax.
+        "years": ["y", "year", "years"],
     }
 
     supported_period_map = None
@@ -244,7 +298,9 @@ class ConfigParser:
         return cls.supported_period_map
 
     @classmethod
-    def parse(cls, content, basedir=None, resolve=True, unresolved_value=DEFAULT_SUBSTITUTION):
+    def parse(
+        cls, content, basedir=None, resolve=True, unresolved_value=DEFAULT_SUBSTITUTION
+    ):
         """parse a HOCON content
 
         :param content: HOCON content to parse
@@ -258,7 +314,7 @@ class ConfigParser:
         :return: a ConfigTree or a list
         """
 
-        unescape_pattern = re.compile(r'\\.')
+        unescape_pattern = re.compile(r"\\.")
 
         def replace_escape_sequence(match):
             value = match.group(0)
@@ -272,7 +328,7 @@ class ConfigParser:
 
         def parse_multi_string(tokens):
             # remove the first and last 3 "
-            return tokens[0][3: -3]
+            return tokens[0][3:-3]
 
         def convert_number(tokens):
             n = tokens[0]
@@ -285,21 +341,27 @@ class ConfigParser:
             period_value = int(tokens.value)
             period_identifier = tokens.unit
 
-            period_unit = next((single_unit for single_unit, values
-                                in cls.get_supported_period_type_map().items()
-                                if period_identifier in values))
+            period_unit = next(
+                (
+                    single_unit
+                    for single_unit, values in cls.get_supported_period_type_map().items()
+                    if period_identifier in values
+                )
+            )
 
             return period(period_value, period_unit)
 
         # ${path} or ${?path} for optional substitution
-        SUBSTITUTION_PATTERN = r"\$\{(?P<optional>\?)?(?P<variable>[^}]+)\}(?P<ws>[ \t]*)"
+        SUBSTITUTION_PATTERN = (
+            r"\$\{(?P<optional>\?)?(?P<variable>[^}]+)\}(?P<ws>[ \t]*)"
+        )
 
         def create_substitution(instring, loc, token):
             # remove the ${ and }
             match = re.match(SUBSTITUTION_PATTERN, token[0])
-            variable = match.group('variable')
-            ws = match.group('ws')
-            optional = match.group('optional') == '?'
+            variable = match.group("variable")
+            ws = match.group("ws")
+            optional = match.group("optional") == "?"
             substitution = ConfigSubstitution(variable, optional, ws, instring, loc)
             return substitution
 
@@ -309,8 +371,8 @@ class ConfigParser:
         def create_quoted_string(instring, loc, token):
             # remove the ${ and }
             match = re.match(STRING_PATTERN, token[0])
-            value = norm_string(match.group('value'))
-            ws = match.group('ws')
+            value = norm_string(match.group("value"))
+            ws = match.group("ws")
             return ConfigQuotedString(value, ws, instring, loc)
 
         def include_config(instring, loc, token):
@@ -318,56 +380,72 @@ class ConfigParser:
             file = None
             required = False
 
-            if token[0] == 'required':
+            if token[0] == "required":
                 required = True
                 final_tokens = token[1:]
             else:
                 final_tokens = token
 
             if len(final_tokens) == 1:  # include "test"
-                value = final_tokens[0].value if isinstance(final_tokens[0], ConfigQuotedString) else final_tokens[0]
-                if value.startswith("http://") or value.startswith("https://") or value.startswith("file://"):
+                value = (
+                    final_tokens[0].value
+                    if isinstance(final_tokens[0], ConfigQuotedString)
+                    else final_tokens[0]
+                )
+                if (
+                    value.startswith("http://")
+                    or value.startswith("https://")
+                    or value.startswith("file://")
+                ):
                     url = value
                 else:
                     file = value
             elif len(final_tokens) == 2:  # include url("test") or file("test")
-                value = final_tokens[1].value if isinstance(final_tokens[1], ConfigQuotedString) else final_tokens[1]
-                if final_tokens[0] == 'url':
+                value = (
+                    final_tokens[1].value
+                    if isinstance(final_tokens[1], ConfigQuotedString)
+                    else final_tokens[1]
+                )
+                if final_tokens[0] == "url":
                     url = value
-                elif final_tokens[0] == 'package':
+                elif final_tokens[0] == "package":
                     file = cls.resolve_package_path(value)
                 else:
                     file = value
 
             if url is not None:
-                logger.debug('Loading config from url %s', url)
+                logger.debug("Loading config from url %s", url)
                 obj = ConfigFactory.parse_URL(
                     url,
                     resolve=False,
                     required=required,
-                    unresolved_value=NO_SUBSTITUTION
+                    unresolved_value=NO_SUBSTITUTION,
                 )
             elif file is not None:
                 path = file if basedir is None else os.path.join(basedir, file)
 
                 def _make_prefix(path):
-                    return ('<root>' if path is None else '[%s]' % path).ljust(55).replace('\\', '/')
+                    return (
+                        ("<root>" if path is None else "[%s]" % path)
+                        .ljust(55)
+                        .replace("\\", "/")
+                    )
 
                 _prefix = _make_prefix(path)
 
                 def _load(path):
                     _prefix = _make_prefix(path)
-                    logger.debug('%s Loading config from file %r', _prefix, path)
+                    logger.debug("%s Loading config from file %r", _prefix, path)
                     obj = ConfigFactory.parse_file(
                         path,
                         resolve=False,
                         required=required,
-                        unresolved_value=NO_SUBSTITUTION
+                        unresolved_value=NO_SUBSTITUTION,
                     )
-                    logger.debug('%s Result: %s', _prefix, obj)
+                    logger.debug("%s Result: %s", _prefix, obj)
                     return obj
 
-                if '*' in path or '?' in path:
+                if "*" in path or "?" in path:
                     paths = glob(path, recursive=True)
                     obj = None
 
@@ -379,47 +457,64 @@ class ConfigParser:
                         elif isinstance(a, list) and isinstance(b, list):
                             return a + b
                         else:
-                            raise ConfigException('Unable to make such include (merging unexpected types: {a} and {b}',
-                                                  a=type(a), b=type(b))
+                            raise ConfigException(
+                                "Unable to make such include (merging unexpected types: {a} and {b}",
+                                a=type(a),
+                                b=type(b),
+                            )
 
-                    logger.debug('%s Loading following configs: %s', _prefix, paths)
+                    logger.debug("%s Loading following configs: %s", _prefix, paths)
                     for p in paths:
                         obj = _merge(obj, _load(p))
-                    logger.debug('%s Result: %s', _prefix, obj)
+                    logger.debug("%s Result: %s", _prefix, obj)
 
                 else:
-                    logger.debug('%s Loading single config: %s', _prefix, path)
+                    logger.debug("%s Loading single config: %s", _prefix, path)
                     obj = _load(path)
 
             else:
-                raise ConfigException('No file or URL specified at: {loc}: {instring}', loc=loc, instring=instring)
+                raise ConfigException(
+                    "No file or URL specified at: {loc}: {instring}",
+                    loc=loc,
+                    instring=instring,
+                )
 
             return ConfigInclude(obj if isinstance(obj, list) else obj.items())
 
         @contextlib.contextmanager
         def set_default_white_spaces():
             default = ParserElement.DEFAULT_WHITE_CHARS
-            ParserElement.setDefaultWhitespaceChars(' \t')
+            ParserElement.setDefaultWhitespaceChars(" \t")
             yield
             ParserElement.setDefaultWhitespaceChars(default)
 
         with set_default_white_spaces():
             assign_expr = Forward()
             true_expr = Keyword("true", caseless=True).setParseAction(replaceWith(True))
-            false_expr = Keyword("false", caseless=True).setParseAction(replaceWith(False))
-            null_expr = Keyword("null", caseless=True).setParseAction(replaceWith(NoneValue()))
-            key = QuotedString('"', escChar='\\', unquoteResults=False) | Word(alphanums + alphas8bit + '._- /')
+            false_expr = Keyword("false", caseless=True).setParseAction(
+                replaceWith(False)
+            )
+            null_expr = Keyword("null", caseless=True).setParseAction(
+                replaceWith(NoneValue())
+            )
+            key = QuotedString('"', escChar="\\", unquoteResults=False) | Word(
+                alphanums + alphas8bit + "._- /"
+            )
 
-            eol = Word('\n\r').suppress()
-            eol_comma = Word('\n\r,').suppress()
-            comment = (Literal('#') | Literal('//')) - SkipTo(eol | StringEnd())
+            eol = Word("\n\r").suppress()
+            eol_comma = Word("\n\r,").suppress()
+            comment = (Literal("#") | Literal("//")) - SkipTo(eol | StringEnd())
             comment_eol = Suppress(Optional(eol_comma) + comment)
             comment_no_comma_eol = (comment | eol).suppress()
-            number_expr = Regex(r'[+-]?(\d*\.\d+|\d+(\.\d+)?)([eE][+\-]?\d+)?(?=$|[ \t]*([\$\}\],#\n\r]|//))',
-                                re.DOTALL).setParseAction(convert_number)
+            number_expr = Regex(
+                r"[+-]?(\d*\.\d+|\d+(\.\d+)?)([eE][+\-]?\d+)?(?=$|[ \t]*([\$\}\],#\n\r]|//))",
+                re.DOTALL,
+            ).setParseAction(convert_number)
 
             # Flatten the list of lists with unit strings.
-            period_types = list(itertools.chain(*cls.get_supported_period_type_map().values()))
+            period_types = list(
+                itertools.chain(*cls.get_supported_period_type_map().values())
+            )
             # `Or()` tries to match the longest expression if more expressions
             # are matching. We employ this to match e.g.: 'weeks' so that we
             # don't end up with 'w' and 'eeks'. Note that 'weeks' but also 'w'
@@ -427,32 +522,58 @@ class ConfigParser:
             # Allow only spaces as a valid separator between value and unit.
             # E.g. \t as a separator is invalid: '10<TAB>weeks'.
             period_expr = (
-                Word(nums)('value') + ZeroOrMore(White(ws=' ')).suppress() + Or(period_types)('unit') + WordEnd(alphanums).suppress()
+                Word(nums)("value")
+                + ZeroOrMore(White(ws=" ")).suppress()
+                + Or(period_types)("unit")
+                + WordEnd(alphanums).suppress()
             ).setParseAction(convert_period)
 
             # multi line string using """
             # Using fix described in http://pyparsing.wikispaces.com/share/view/3778969
-            multiline_string = Regex('""".*?"*"""', re.DOTALL).setParseAction(parse_multi_string)
+            multiline_string = Regex('""".*?"*"""', re.DOTALL).setParseAction(
+                parse_multi_string
+            )
             # single quoted line string
-            quoted_string = Regex(r'"(?:[^"\\\n]|\\.)*"[ \t]*').setParseAction(create_quoted_string)
+            quoted_string = Regex(r'"(?:[^"\\\n]|\\.)*"[ \t]*').setParseAction(
+                create_quoted_string
+            )
             # unquoted string that takes the rest of the line until an optional comment
             # we support .properties multiline support which is like this:
             # line1  \
             # line2 \
             # so a backslash precedes the \n
-            unquoted_string = Regex(r'(?:[^^`+?!@*&"\[\{\s\]\}#,=\$\\]|\\.)+[ \t]*').setParseAction(unescape_string)
-            substitution_expr = Regex(r'[ \t]*\$\{[^\}]+\}[ \t]*').setParseAction(create_substitution)
+            unquoted_string = Regex(
+                r'(?:[^^`+?!@*&"\[\{\s\]\}#,=\$\\]|\\.)+[ \t]*'
+            ).setParseAction(unescape_string)
+            substitution_expr = Regex(r"[ \t]*\$\{[^\}]+\}[ \t]*").setParseAction(
+                create_substitution
+            )
             string_expr = multiline_string | quoted_string | unquoted_string
 
-            value_expr = period_expr | number_expr | true_expr | false_expr | null_expr | string_expr
+            value_expr = (
+                period_expr
+                | number_expr
+                | true_expr
+                | false_expr
+                | null_expr
+                | string_expr
+            )
 
-            include_content = (
-                quoted_string | ((Keyword('url') | Keyword('file') | Keyword('package')) - Literal('(').suppress() - quoted_string - Literal(')').suppress())
+            include_content = quoted_string | (
+                (Keyword("url") | Keyword("file") | Keyword("package"))
+                - Literal("(").suppress()
+                - quoted_string
+                - Literal(")").suppress()
             )
             include_expr = (
-                Keyword("include", caseless=True).suppress() + (
-                    include_content | (
-                        Keyword("required") - Literal('(').suppress() - include_content - Literal(')').suppress()
+                Keyword("include", caseless=True).suppress()
+                + (
+                    include_content
+                    | (
+                        Keyword("required")
+                        - Literal("(").suppress()
+                        - include_content
+                        - Literal(")").suppress()
                     )
                 )
             ).setParseAction(include_config)
@@ -460,35 +581,67 @@ class ConfigParser:
             root_dict_expr = Forward()
             dict_expr = Forward()
             list_expr = Forward()
-            multi_value_expr = ZeroOrMore(comment_eol | include_expr | substitution_expr | dict_expr | list_expr | value_expr | (Literal(
-                '\\') - eol).suppress())
+            multi_value_expr = ZeroOrMore(
+                comment_eol
+                | include_expr
+                | substitution_expr
+                | dict_expr
+                | list_expr
+                | value_expr
+                | (Literal("\\") - eol).suppress()
+            )
             # for a dictionary : or = is optional
             # last zeroOrMore is because we can have t = {a:4} {b: 6} {c: 7} which is dictionary concatenation
-            inside_dict_expr = ConfigTreeParser(ZeroOrMore(comment_eol | include_expr | assign_expr | eol_comma))
-            inside_root_dict_expr = ConfigTreeParser(ZeroOrMore(comment_eol | include_expr | assign_expr | eol_comma), root=True)
-            dict_expr << Suppress('{') - inside_dict_expr - Suppress('}')
-            root_dict_expr << Suppress('{') - inside_root_dict_expr - Suppress('}')
+            inside_dict_expr = ConfigTreeParser(
+                ZeroOrMore(comment_eol | include_expr | assign_expr | eol_comma)
+            )
+            inside_root_dict_expr = ConfigTreeParser(
+                ZeroOrMore(comment_eol | include_expr | assign_expr | eol_comma),
+                root=True,
+            )
+            dict_expr << Suppress("{") - inside_dict_expr - Suppress("}")
+            root_dict_expr << Suppress("{") - inside_root_dict_expr - Suppress("}")
             list_entry = ConcatenatedValueParser(multi_value_expr)
-            list_expr << Suppress('[') - ListParser(list_entry - ZeroOrMore(eol_comma - list_entry)) - Suppress(']')
+            list_expr << Suppress("[") - ListParser(
+                list_entry - ZeroOrMore(eol_comma - list_entry)
+            ) - Suppress("]")
 
             # special case when we have a value assignment where the string can potentially be the remainder of the line
             assign_expr << Group(
-                key - ZeroOrMore(comment_no_comma_eol) - (dict_expr | (Literal('=') | Literal(':') | Literal('+=')) - ZeroOrMore(
-                    comment_no_comma_eol) - ConcatenatedValueParser(multi_value_expr))
+                key
+                - ZeroOrMore(comment_no_comma_eol)
+                - (
+                    dict_expr
+                    | (Literal("=") | Literal(":") | Literal("+="))
+                    - ZeroOrMore(comment_no_comma_eol)
+                    - ConcatenatedValueParser(multi_value_expr)
+                )
             )
 
             # the file can be { ... } where {} can be omitted or []
-            config_expr = ZeroOrMore(comment_eol | eol) + (list_expr | root_dict_expr | inside_root_dict_expr) + ZeroOrMore(
-                comment_eol | eol_comma)
+            config_expr = (
+                ZeroOrMore(comment_eol | eol)
+                + (list_expr | root_dict_expr | inside_root_dict_expr)
+                + ZeroOrMore(comment_eol | eol_comma)
+            )
             config = config_expr.parseString(content, parseAll=True)[0]
 
             if resolve:
-                allow_unresolved = resolve and unresolved_value is not DEFAULT_SUBSTITUTION and unresolved_value is not MANDATORY_SUBSTITUTION
+                allow_unresolved = (
+                    resolve
+                    and unresolved_value is not DEFAULT_SUBSTITUTION
+                    and unresolved_value is not MANDATORY_SUBSTITUTION
+                )
                 has_unresolved = cls.resolve_substitutions(config, allow_unresolved)
                 if has_unresolved and unresolved_value is MANDATORY_SUBSTITUTION:
-                    raise ConfigSubstitutionException('resolve cannot be set to True and unresolved_value to MANDATORY_SUBSTITUTION')
+                    raise ConfigSubstitutionException(
+                        "resolve cannot be set to True and unresolved_value to MANDATORY_SUBSTITUTION"
+                    )
 
-            if unresolved_value is not NO_SUBSTITUTION and unresolved_value is not DEFAULT_SUBSTITUTION:
+            if (
+                unresolved_value is not NO_SUBSTITUTION
+                and unresolved_value is not DEFAULT_SUBSTITUTION
+            ):
                 cls.unresolve_substitutions_to_value(config, unresolved_value)
         return config
 
@@ -514,7 +667,9 @@ class ConfigParser:
                         "Cannot resolve variable ${{{variable}}} (line: {line}, col: {col})".format(
                             variable=variable,
                             line=lineno(substitution.loc, substitution.instring),
-                            col=col(substitution.loc, substitution.instring)))
+                            col=col(substitution.loc, substitution.instring),
+                        )
+                    )
             elif isinstance(value, ConfigList) or isinstance(value, ConfigTree):
                 raise ConfigSubstitutionException(
                     "Cannot substitute variable ${{{variable}}} because it does not point to a "
@@ -522,7 +677,9 @@ class ConfigParser:
                         variable=variable,
                         type=value.__class__.__name__,
                         line=lineno(substitution.loc, substitution.instring),
-                        col=col(substitution.loc, substitution.instring)))
+                        col=col(substitution.loc, substitution.instring),
+                    )
+                )
             return True, value
 
     @classmethod
@@ -534,31 +691,48 @@ class ConfigParser:
                 for current_item in history[1:]:
                     for substitution in cls._find_substitutions(current_item):
                         prop_path = ConfigTree.parse_key(substitution.variable)
-                        if len(prop_path) > 1 and config.get(substitution.variable, None) is not None:
+                        if (
+                            len(prop_path) > 1
+                            and config.get(substitution.variable, None) is not None
+                        ):
                             continue  # If value is present in latest version, don't do anything
                         if prop_path[0] == key:
-                            if isinstance(previous_item, ConfigValues) and not accept_unresolved:  # We hit a dead end, we cannot evaluate
+                            if (
+                                isinstance(previous_item, ConfigValues)
+                                and not accept_unresolved
+                            ):  # We hit a dead end, we cannot evaluate
                                 raise ConfigSubstitutionException(
                                     "Property {variable} cannot be substituted. Check for cycles.".format(
                                         variable=substitution.variable
                                     )
                                 )
                             else:
-                                value = previous_item if len(prop_path) == 1 else previous_item.get(".".join(prop_path[1:]))
-                                _, _, current_item = cls._do_substitute(substitution, value)
+                                value = (
+                                    previous_item
+                                    if len(prop_path) == 1
+                                    else previous_item.get(".".join(prop_path[1:]))
+                                )
+                                _, _, current_item = cls._do_substitute(
+                                    substitution, value
+                                )
                     previous_item = current_item
 
                 if len(history) == 1:
                     for substitution in cls._find_substitutions(previous_item):
                         prop_path = ConfigTree.parse_key(substitution.variable)
-                        if len(prop_path) > 1 and config.get(substitution.variable, None) is not None:
+                        if (
+                            len(prop_path) > 1
+                            and config.get(substitution.variable, None) is not None
+                        ):
                             continue  # If value is present in latest version, don't do anything
                         if prop_path[0] == key:
                             value = os.environ.get(key)
                             if value is not None:
                                 cls._do_substitute(substitution, value)
                                 continue
-                            if substitution.optional:  # special case, when self optional referencing without existing
+                            if (
+                                substitution.optional
+                            ):  # special case, when self optional referencing without existing
                                 cls._do_substitute(substitution, None)
 
     # traverse config to find all the substitutions
@@ -596,17 +770,23 @@ class ConfigParser:
             # replace token by substitution
             config_values = substitution.parent
             # if it is a string, then add the extra ws that was present in the original string after the substitution
-            formatted_resolved_value = resolved_value \
-                if resolved_value is None \
-                or isinstance(resolved_value, (dict, list)) \
-                or substitution.index == len(config_values.tokens) - 1 \
+            formatted_resolved_value = (
+                resolved_value
+                if resolved_value is None
+                or isinstance(resolved_value, (dict, list))
+                or substitution.index == len(config_values.tokens) - 1
                 else (str(resolved_value) + substitution.ws)
+            )
             # use a deepcopy of resolved_value to avoid mutation
-            config_values.put(substitution.index, copy.deepcopy(formatted_resolved_value))
+            config_values.put(
+                substitution.index, copy.deepcopy(formatted_resolved_value)
+            )
             transformation = config_values.transform()
-            result = config_values.overriden_value \
-                if transformation is None and not is_optional_resolved \
+            result = (
+                config_values.overriden_value
+                if transformation is None and not is_optional_resolved
                 else transformation
+            )
 
             # When the result is None, remove the key.
             if result is None and config_values.key in config_values.parent:
@@ -633,7 +813,9 @@ class ConfigParser:
         return item
 
     @classmethod
-    def unresolve_substitutions_to_value(cls, config, unresolved_value=STR_SUBSTITUTION):
+    def unresolve_substitutions_to_value(
+        cls, config, unresolved_value=STR_SUBSTITUTION
+    ):
         for substitution in cls._find_substitutions(config):
             if unresolved_value is STR_SUBSTITUTION:
                 value = substitution.raw_str()
@@ -654,7 +836,11 @@ class ConfigParser:
             any_unresolved = True
             _substitutions = []
             cache = {}
-            while any_unresolved and len(substitutions) > 0 and set(substitutions) != set(_substitutions):
+            while (
+                any_unresolved
+                and len(substitutions) > 0
+                and set(substitutions) != set(_substitutions)
+            ):
                 unresolved = False
                 any_unresolved = True
                 _substitutions = substitutions[:]
@@ -663,10 +849,14 @@ class ConfigParser:
                     # If this substitution is an override, and the parent is still being processed,
                     # skip this entry, it will be processed on the next loop.
                     if substitution.parent.overriden_value:
-                        if substitution.parent.overriden_value in [s.parent for s in substitutions]:
+                        if substitution.parent.overriden_value in [
+                            s.parent for s in substitutions
+                        ]:
                             continue
 
-                    is_optional_resolved, resolved_value = cls._resolve_variable(config, substitution)
+                    is_optional_resolved, resolved_value = cls._resolve_variable(
+                        config, substitution
+                    )
 
                     # if the substitution is optional
                     if not is_optional_resolved and substitution.optional:
@@ -681,18 +871,24 @@ class ConfigParser:
                                 link = link.overriden_value
                             cache[resolved_value] = parents
 
-                    if isinstance(resolved_value, ConfigValues) \
-                       and substitution.parent in parents \
-                       and hasattr(substitution.parent, 'overriden_value') \
-                       and substitution.parent.overriden_value:
+                    if (
+                        isinstance(resolved_value, ConfigValues)
+                        and substitution.parent in parents
+                        and hasattr(substitution.parent, "overriden_value")
+                        and substitution.parent.overriden_value
+                    ):
 
                         # self resolution, backtrack
                         resolved_value = substitution.parent.overriden_value
 
-                    unresolved, new_substitutions, result = cls._do_substitute(substitution, resolved_value, is_optional_resolved)
+                    unresolved, new_substitutions, result = cls._do_substitute(
+                        substitution, resolved_value, is_optional_resolved
+                    )
                     any_unresolved = unresolved or any_unresolved
                     # Detected substitutions may already be listed to process
-                    new_substitutions = [n for n in new_substitutions if n not in substitutions]
+                    new_substitutions = [
+                        n for n in new_substitutions if n not in substitutions
+                    ]
                     substitutions.extend(new_substitutions)
                     if not isinstance(result, ConfigValues):
                         substitutions.remove(substitution)
@@ -701,11 +897,20 @@ class ConfigParser:
             if unresolved:
                 has_unresolved = True
                 if not accept_unresolved:
-                    raise ConfigSubstitutionException("Cannot resolve {variables}. Check for cycles.".format(
-                        variables=', '.join('${{{variable}}}: (line: {line}, col: {col})'.format(
-                            variable=substitution.variable,
-                            line=lineno(substitution.loc, substitution.instring),
-                            col=col(substitution.loc, substitution.instring)) for substitution in substitutions)))
+                    raise ConfigSubstitutionException(
+                        "Cannot resolve {variables}. Check for cycles.".format(
+                            variables=", ".join(
+                                "${{{variable}}}: (line: {line}, col: {col})".format(
+                                    variable=substitution.variable,
+                                    line=lineno(
+                                        substitution.loc, substitution.instring
+                                    ),
+                                    col=col(substitution.loc, substitution.instring),
+                                )
+                                for substitution in substitutions
+                            )
+                        )
+                    )
 
         cls._final_fixup(config)
         return has_unresolved
@@ -722,22 +927,23 @@ class ConfigParser:
         :param package_path: the package path, formatted as "PACKAGE:PATH"
         :return: the absolute path to the specified file inside the specified package
         """
-        if ':' not in package_path:
+        if ":" not in package_path:
             raise ValueError("Expected format is 'PACKAGE:PATH'")
-        package_name, path_relative = package_path.split(':', 1)
+        package_name, path_relative = package_path.split(":", 1)
         package_dirs = find_package_dirs(package_name)
         for package_dir in package_dirs:
             path_abs = os.path.join(package_dir, path_relative)
             if os.path.exists(path_abs):
                 return path_abs
-        raise ImportError("Can't find {path_relative} in package:{package_name}".format(
-            path_relative=path_relative,
-            package_name=package_name))
+        raise ImportError(
+            "Can't find {path_relative} in package:{package_name}".format(
+                path_relative=path_relative, package_name=package_name
+            )
+        )
 
 
 class ListParser(TokenConverter):
-    """Parse a list [elt1, etl2, ...]
-    """
+    """Parse a list [elt1, etl2, ...]"""
 
     def __init__(self, expr=None):
         super().__init__(expr)
@@ -761,7 +967,7 @@ class ListParser(TokenConverter):
         # a different object type so Python falls back to identity comparison.
         # We cannot compare this object to a string object.
         for token in token_list:
-            if isinstance(token, str) and token == '':
+            if isinstance(token, str) and token == "":
                 # This is the case when there was a trailing comma in the list.
                 # The last token is just an empty string so we can safely ignore
                 # it.
@@ -806,13 +1012,15 @@ class ConfigTreeParser(TokenConverter):
         """
         config_tree = ConfigTree(root=self.root)
         for element in token_list:
-            expanded_tokens = element.tokens if isinstance(element, ConfigInclude) else [element]
+            expanded_tokens = (
+                element.tokens if isinstance(element, ConfigInclude) else [element]
+            )
 
             for tokens in expanded_tokens:
                 # key, value1 (optional), ...
                 key = tokens[0].strip()
-                operator = '='
-                if len(tokens) == 3 and tokens[1].strip() in [':', '=', '+=']:
+                operator = "="
+                if len(tokens) == 3 and tokens[1].strip() in [":", "=", "+="]:
                     operator = tokens[1].strip()
                     values = tokens[2:]
                 elif len(tokens) == 2:
@@ -821,27 +1029,39 @@ class ConfigTreeParser(TokenConverter):
                     raise ParseSyntaxException(f"Unknown tokens {tokens} received")
                 # empty string
                 if len(values) == 0:
-                    config_tree.put(key, '')
+                    config_tree.put(key, "")
                 else:
                     value = values[0]
                     if isinstance(value, list) and operator == "+=":
-                        value = ConfigValues([ConfigSubstitution(key, True, '', False, loc), value], False, loc)
+                        value = ConfigValues(
+                            [ConfigSubstitution(key, True, "", False, loc), value],
+                            False,
+                            loc,
+                        )
                         config_tree.put(key, value, False)
                     elif isinstance(value, str) and operator == "+=":
-                        value = ConfigValues([ConfigSubstitution(key, True, '', True, loc), ' ' + value], True, loc)
+                        value = ConfigValues(
+                            [ConfigSubstitution(key, True, "", True, loc), " " + value],
+                            True,
+                            loc,
+                        )
                         config_tree.put(key, value, False)
                     elif isinstance(value, list):
                         config_tree.put(key, value, False)
                     else:
                         existing_value = config_tree.get(key, None)
-                        if isinstance(value, ConfigTree) and not isinstance(existing_value, list):
+                        if isinstance(value, ConfigTree) and not isinstance(
+                            existing_value, list
+                        ):
                             # Only Tree has to be merged with tree
                             config_tree.put(key, value, True)
                         elif isinstance(value, ConfigValues):
                             conf_value = value
                             value.parent = config_tree
                             value.key = key
-                            if isinstance(existing_value, list) or isinstance(existing_value, ConfigTree):
+                            if isinstance(existing_value, list) or isinstance(
+                                existing_value, ConfigTree
+                            ):
                                 config_tree.put(key, conf_value, True)
                             else:
                                 config_tree.put(key, conf_value, False)

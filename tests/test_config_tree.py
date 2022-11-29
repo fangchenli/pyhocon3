@@ -2,15 +2,17 @@ from collections import OrderedDict
 
 import pytest
 
+from pyhocon.config_parser import ConfigFactory
 from pyhocon.config_tree import ConfigTree, NoneValue
 from pyhocon.exceptions import (
-    ConfigMissingException, ConfigWrongTypeException, ConfigException)
-from pyhocon.config_parser import ConfigFactory
+    ConfigException,
+    ConfigMissingException,
+    ConfigWrongTypeException,
+)
 from pyhocon.tool import HOCONConverter
 
 
 class TestConfigTree:
-
     def test_config_tree_quoted_string(self):
         config_tree = ConfigTree()
         config_tree.put("a.b.c", "value")
@@ -64,10 +66,11 @@ class TestConfigTree:
 
     def test_config_logging(self):
         import logging.config
+
         config_tree = ConfigTree()
-        config_tree.put('version', 1)
-        config_tree.put('root.level', logging.INFO)
-        assert dict(config_tree)['version'] == 1
+        config_tree.put("version", 1)
+        config_tree.put("root.level", logging.INFO)
+        assert dict(config_tree)["version"] == 1
 
     def test_config_tree_null(self):
         config_tree = ConfigTree()
@@ -106,10 +109,10 @@ class TestConfigTree:
         assert config_tree.get("bool") is True
         assert config_tree.get_bool("bool") is True
 
-        config_tree.put("config", {'a': 5})
-        assert config_tree["config"] == {'a': 5}
-        assert config_tree.get("config") == {'a': 5}
-        assert config_tree.get_config("config") == {'a': 5}
+        config_tree.put("config", {"a": 5})
+        assert config_tree["config"] == {"a": 5}
+        assert config_tree.get("config") == {"a": 5}
+        assert config_tree.get_config("config") == {"a": 5}
 
     def test_getters_with_default(self):
         config_tree = ConfigTree()
@@ -145,11 +148,11 @@ class TestConfigTree:
         assert config_tree.get_bool("bool", False) is True
         assert config_tree.get_bool("bool-new", False) is False
 
-        config_tree.put("config", {'a': 5})
-        assert config_tree.get("config", {'b': 1}) == {'a': 5}
-        assert config_tree.get("config-new", {'b': 1}) == {'b': 1}
-        assert config_tree.get_config("config", {'b': 1}) == {'a': 5}
-        assert config_tree.get_config("config-new", {'b': 1}) == {'b': 1}
+        config_tree.put("config", {"a": 5})
+        assert config_tree.get("config", {"b": 1}) == {"a": 5}
+        assert config_tree.get("config-new", {"b": 1}) == {"b": 1}
+        assert config_tree.get_config("config", {"b": 1}) == {"a": 5}
+        assert config_tree.get_config("config-new", {"b": 1}) == {"b": 1}
 
     def test_getter_type_conversion_string_to_bool(self):
         config_tree = ConfigTree()
@@ -201,13 +204,13 @@ class TestConfigTree:
         config_tree = ConfigTree()
         config_tree.put("int", 5)
         config_tree.put("int.config", 1)
-        assert config_tree == {'int': {'config': 1}}
+        assert config_tree == {"int": {"config": 1}}
 
     def test_overrides_int_with_config_append(self):
         config_tree = ConfigTree()
         config_tree.put("int", 5, True)
         config_tree.put("int.config", 1, True)
-        assert config_tree == {'int': {'config': 1}}
+        assert config_tree == {"int": {"config": 1}}
 
     def test_plain_ordered_dict(self):
         config_tree = ConfigTree()
@@ -215,29 +218,29 @@ class TestConfigTree:
         config_tree.put('a."b.c"', [ConfigTree(), 2])
         config_tree.get('a."b.c"')[0].put('"c.d"', 1)
         d = OrderedDict()
-        d['a.b'] = 5
-        d['a'] = OrderedDict()
-        d['a']['b.c'] = [OrderedDict(), 2]
-        d['a']['b.c'][0]['c.d'] = 1
+        d["a.b"] = 5
+        d["a"] = OrderedDict()
+        d["a"]["b.c"] = [OrderedDict(), 2]
+        d["a"]["b.c"][0]["c.d"] = 1
         assert config_tree.as_plain_ordered_dict() == d
 
     def test_contains(self):
         config_tree = ConfigTree()
-        config_tree.put('a.b', 5)
-        config_tree.put('a.c', None)
-        assert 'a' in config_tree
-        assert 'a.b' in config_tree
-        assert 'a.c' in config_tree
-        assert 'a.b.c' not in config_tree
+        config_tree.put("a.b", 5)
+        config_tree.put("a.c", None)
+        assert "a" in config_tree
+        assert "a.b" in config_tree
+        assert "a.c" in config_tree
+        assert "a.b.c" not in config_tree
 
     def test_contains_with_quoted_keys(self):
         config_tree = ConfigTree()
         config_tree.put('a.b."c.d"', 5)
-        assert 'a' in config_tree
-        assert 'a.b' in config_tree
-        assert 'a.c' not in config_tree
+        assert "a" in config_tree
+        assert "a.b" in config_tree
+        assert "a.c" not in config_tree
         assert 'a.b."c.d"' in config_tree
-        assert 'a.b.c.d' not in config_tree
+        assert "a.b.c.d" not in config_tree
 
     def test_configtree_pop(self):
         config_tree = ConfigTree()
@@ -254,50 +257,54 @@ class TestConfigTree:
         assert config_tree.pop("list-new", [4]) == [4]
         assert config_tree == ConfigTree()
 
-        config_tree.put("config", {'a': 5})
-        assert config_tree.pop("config", {'b': 1}) == {'a': 5}
-        assert config_tree.pop("config-new", {'b': 1}) == {'b': 1}
+        config_tree.put("config", {"a": 5})
+        assert config_tree.pop("config", {"b": 1}) == {"a": 5}
+        assert config_tree.pop("config-new", {"b": 1}) == {"b": 1}
         assert config_tree == ConfigTree()
 
         config_tree = ConfigTree()
-        config_tree.put('key', 'value')
-        assert config_tree.pop('key', 'value') == 'value'
-        assert 'key' not in config_tree
+        config_tree.put("key", "value")
+        assert config_tree.pop("key", "value") == "value"
+        assert "key" not in config_tree
 
         config_tree = ConfigTree()
-        config_tree.put('a.b.c.one', 1)
-        config_tree.put('a.b.c.two', 2)
+        config_tree.put("a.b.c.one", 1)
+        config_tree.put("a.b.c.two", 2)
         config_tree.put('"f.k".g.three', 3)
 
         exp = OrderedDict()
-        exp['a'] = OrderedDict()
-        exp['a']['b'] = OrderedDict()
-        exp['a']['b']['c'] = OrderedDict()
-        exp['a']['b']['c']['one'] = 1
-        exp['a']['b']['c']['two'] = 2
+        exp["a"] = OrderedDict()
+        exp["a"]["b"] = OrderedDict()
+        exp["a"]["b"]["c"] = OrderedDict()
+        exp["a"]["b"]["c"]["one"] = 1
+        exp["a"]["b"]["c"]["two"] = 2
 
-        exp['f.k'] = OrderedDict()
-        exp['f.k']['g'] = OrderedDict()
-        exp['f.k']['g']['three'] = 3
+        exp["f.k"] = OrderedDict()
+        exp["f.k"]["g"] = OrderedDict()
+        exp["f.k"]["g"]["three"] = 3
 
-        assert config_tree.pop('a.b.c').as_plain_ordered_dict() == exp['a']['b']['c']
-        assert config_tree.pop('a.b.c', None) is None
+        assert config_tree.pop("a.b.c").as_plain_ordered_dict() == exp["a"]["b"]["c"]
+        assert config_tree.pop("a.b.c", None) is None
 
         with pytest.raises(ConfigMissingException):
-            assert config_tree.pop('a.b.c')
+            assert config_tree.pop("a.b.c")
         with pytest.raises(ConfigMissingException):
-            assert config_tree['a']['b'].pop('c')
+            assert config_tree["a"]["b"].pop("c")
 
-        assert config_tree.pop('a').as_plain_ordered_dict() == OrderedDict(b=OrderedDict())
-        assert config_tree.pop('"f.k"').as_plain_ordered_dict() == OrderedDict(g=OrderedDict(three=3))
+        assert config_tree.pop("a").as_plain_ordered_dict() == OrderedDict(
+            b=OrderedDict()
+        )
+        assert config_tree.pop('"f.k"').as_plain_ordered_dict() == OrderedDict(
+            g=OrderedDict(three=3)
+        )
         assert config_tree.as_plain_ordered_dict() == OrderedDict()
 
     def test_keyerror_raised(self):
         config_tree = ConfigTree()
-        config_tree.put("a", {'b': 5})
+        config_tree.put("a", {"b": 5})
 
         with pytest.raises(KeyError):
-            assert config_tree['c']
+            assert config_tree["c"]
 
     def test_configmissing_raised(self):
         config_tree = ConfigTree()
@@ -308,16 +315,16 @@ class TestConfigTree:
             config_tree.get_float,
             config_tree.get_int,
             config_tree.get_list,
-            config_tree.get_string
+            config_tree.get_string,
         ]:
             with pytest.raises(ConfigMissingException):
-                assert getter('missing_key')
+                assert getter("missing_key")
 
     def test_config_tree_special_characters(self):
-        special_characters = '$}[]:=+#`^?!@*&.'
+        special_characters = "$}[]:=+#`^?!@*&."
         for char in special_characters:
             config_tree = ConfigTree()
-            escaped_key = f"\"test{char}key\""
+            escaped_key = f'"test{char}key"'
             key = f"a.b.{escaped_key}"
             config_tree.put(key, "value")
             hocon_tree = HOCONConverter.to_hocon(config_tree)
@@ -333,7 +340,7 @@ class TestConfigTree:
                 value = ${nested.sub}
             }
             """,
-            resolve=False
+            resolve=False,
         )
 
         substitudeConfig = ConfigFactory.parse_string(
@@ -348,7 +355,7 @@ class TestConfigTree:
             """
         )
         result = config.resolve(substitudeConfig)
-        assert result.get_int('a') == 100
-        assert result.get_string('nested.value.a') == "string"
-        assert result.get_int('nested.value.b') == 10
+        assert result.get_int("a") == 100
+        assert result.get_string("nested.value.a") == "string"
+        assert result.get_int("nested.value.b") == 10
         assert config != result

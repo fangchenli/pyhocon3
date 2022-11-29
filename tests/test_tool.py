@@ -7,7 +7,7 @@ from pyhocon.converter import HOCONConverter
 
 
 class TestHOCONConverter(object):
-    CONFIG_STRING = u"""
+    CONFIG_STRING = """
             a = {b: 1}
             b = [1, 2]
             c = 1
@@ -26,8 +26,7 @@ class TestHOCONConverter(object):
 
     CONFIG = ConfigFactory.parse_string(CONFIG_STRING)
 
-    EXPECTED_JSON = \
-        """
+    EXPECTED_JSON = """
             {
               "a": {
                 "b": 1
@@ -49,8 +48,7 @@ class TestHOCONConverter(object):
             }
         """
 
-    EXPECTED_HOCON = \
-        """
+    EXPECTED_HOCON = """
               a {
                 b = 1
               }
@@ -70,8 +68,7 @@ class TestHOCONConverter(object):
               td_days = 4 days
         """
 
-    EXPECTED_COMPACT_HOCON = \
-        """
+    EXPECTED_COMPACT_HOCON = """
               a.b = 1
               b = [
                 1
@@ -89,8 +86,7 @@ class TestHOCONConverter(object):
               td_days = 4 days
         """
 
-    EXPECTED_YAML = \
-        """
+    EXPECTED_YAML = """
             a:
               b: 1
             b:
@@ -111,8 +107,7 @@ class TestHOCONConverter(object):
             td_days: 345600000
         """
 
-    EXPECTED_PROPERTIES = \
-        """
+    EXPECTED_PROPERTIES = """
             a.b = 1
             b.0 = 1
             b.1 = 2
@@ -129,49 +124,83 @@ class TestHOCONConverter(object):
 
     def test_to_json(self):
         converted = HOCONConverter.to_json(TestHOCONConverter.CONFIG)
-        assert [line.strip() for line in TestHOCONConverter.EXPECTED_JSON.split('\n') if line.strip()]\
-            == [line.strip() for line in converted.split('\n') if line.strip()]
+        assert [
+            line.strip()
+            for line in TestHOCONConverter.EXPECTED_JSON.split("\n")
+            if line.strip()
+        ] == [line.strip() for line in converted.split("\n") if line.strip()]
 
     def test_to_yaml(self):
         converted = HOCONConverter.to_yaml(TestHOCONConverter.CONFIG)
-        assert [line.strip() for line in TestHOCONConverter.EXPECTED_YAML.split('\n') if line.strip()]\
-            == [line.strip() for line in converted.split('\n') if line.strip()]
+        assert [
+            line.strip()
+            for line in TestHOCONConverter.EXPECTED_YAML.split("\n")
+            if line.strip()
+        ] == [line.strip() for line in converted.split("\n") if line.strip()]
 
     def test_to_properties(self):
         converted = HOCONConverter.to_properties(TestHOCONConverter.CONFIG)
-        assert [line.strip() for line in TestHOCONConverter.EXPECTED_PROPERTIES.split('\n') if line.strip()]\
-            == [line.strip() for line in converted.split('\n') if line.strip()]
+        assert [
+            line.strip()
+            for line in TestHOCONConverter.EXPECTED_PROPERTIES.split("\n")
+            if line.strip()
+        ] == [line.strip() for line in converted.split("\n") if line.strip()]
 
     def test_to_hocon(self):
         converted = HOCONConverter.to_hocon(TestHOCONConverter.CONFIG)
-        assert [line.strip() for line in TestHOCONConverter.EXPECTED_HOCON.split('\n') if line.strip()]\
-            == [line.strip() for line in converted.split('\n') if line.strip()]
+        assert [
+            line.strip()
+            for line in TestHOCONConverter.EXPECTED_HOCON.split("\n")
+            if line.strip()
+        ] == [line.strip() for line in converted.split("\n") if line.strip()]
 
     def test_to_compact_hocon(self):
         converted = HOCONConverter.to_hocon(TestHOCONConverter.CONFIG, compact=True)
-        assert [line.strip() for line in TestHOCONConverter.EXPECTED_COMPACT_HOCON.split('\n') if line.strip()]\
-            == [line.strip() for line in converted.split('\n') if line.strip()]
+        assert [
+            line.strip()
+            for line in TestHOCONConverter.EXPECTED_COMPACT_HOCON.split("\n")
+            if line.strip()
+        ] == [line.strip() for line in converted.split("\n") if line.strip()]
 
     def _test_convert_from_file(self, input, expected_output, format):
-        with tempfile.NamedTemporaryFile('w') as fdin:
+        with tempfile.NamedTemporaryFile("w") as fdin:
             fdin.write(input)
             fdin.flush()
-            with tempfile.NamedTemporaryFile('r') as fdout:
+            with tempfile.NamedTemporaryFile("r") as fdout:
                 HOCONConverter.convert_from_file(fdin.name, fdout.name, format)
                 with open(fdout.name) as fdi:
                     converted = fdi.read()
-                    assert [line.strip() for line in expected_output.split('\n') if line.strip()]\
-                        == [line.strip() for line in converted.split('\n') if line.strip()]
+                    assert [
+                        line.strip()
+                        for line in expected_output.split("\n")
+                        if line.strip()
+                    ] == [
+                        line.strip() for line in converted.split("\n") if line.strip()
+                    ]
 
     def test_convert_from_file(self):
-        self._test_convert_from_file(TestHOCONConverter.CONFIG_STRING, TestHOCONConverter.EXPECTED_JSON, 'json')
-        self._test_convert_from_file(TestHOCONConverter.CONFIG_STRING, TestHOCONConverter.EXPECTED_YAML, 'yaml')
-        self._test_convert_from_file(TestHOCONConverter.CONFIG_STRING, TestHOCONConverter.EXPECTED_PROPERTIES, 'properties')
-        self._test_convert_from_file(TestHOCONConverter.CONFIG_STRING, TestHOCONConverter.EXPECTED_HOCON, 'hocon')
+        self._test_convert_from_file(
+            TestHOCONConverter.CONFIG_STRING, TestHOCONConverter.EXPECTED_JSON, "json"
+        )
+        self._test_convert_from_file(
+            TestHOCONConverter.CONFIG_STRING, TestHOCONConverter.EXPECTED_YAML, "yaml"
+        )
+        self._test_convert_from_file(
+            TestHOCONConverter.CONFIG_STRING,
+            TestHOCONConverter.EXPECTED_PROPERTIES,
+            "properties",
+        )
+        self._test_convert_from_file(
+            TestHOCONConverter.CONFIG_STRING, TestHOCONConverter.EXPECTED_HOCON, "hocon"
+        )
 
     def test_invalid_format(self):
         with pytest.raises(Exception):
-            self._test_convert_from_file(TestHOCONConverter.CONFIG_STRING, TestHOCONConverter.EXPECTED_PROPERTIES, 'invalid')
+            self._test_convert_from_file(
+                TestHOCONConverter.CONFIG_STRING,
+                TestHOCONConverter.EXPECTED_PROPERTIES,
+                "invalid",
+            )
 
 
 def test_substitutions_conversions():
@@ -189,8 +218,12 @@ def test_substitutions_conversions():
     large-jvm-opts = ${default-jvm-opts} [-Xm16g]
 }
     """
-    converted1 = HOCONConverter.to_hocon(ConfigFactory.parse_string(config_string, resolve=False))
-    converted2 = HOCONConverter.to_hocon(ConfigFactory.parse_string(converted1, resolve=False))
-    line1_tokens = [line.strip() for line in converted1.split('\n') if line.strip()]
-    line2_tokens = [line.strip() for line in converted2.split('\n') if line.strip()]
+    converted1 = HOCONConverter.to_hocon(
+        ConfigFactory.parse_string(config_string, resolve=False)
+    )
+    converted2 = HOCONConverter.to_hocon(
+        ConfigFactory.parse_string(converted1, resolve=False)
+    )
+    line1_tokens = [line.strip() for line in converted1.split("\n") if line.strip()]
+    line2_tokens = [line.strip() for line in converted2.split("\n") if line.strip()]
     assert line1_tokens == line2_tokens
