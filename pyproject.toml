@@ -1,0 +1,44 @@
+[build-system]
+requires = [
+    "setuptools>=61.0.0",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyhocon"
+version = "0.3.60"
+description = "HOCON parser for Python"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+  {email = "francois.dangngoc@gmail.com"},
+  {name = "Francois Dang Ngoc"}
+]
+keywords = ["hocon", "parser"]
+requires-python = ">=3.7"
+dependencies = ["pyparsing~=2.0"]
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Environment :: Console',
+    'Operating System :: OS Independent',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+]
+
+[project.urls]
+repository = "http://github.com/chimpler/pyhocon/"
+
+[project.scripts]
+pyhocon = "pyhocon:tool"
+
+[project.optional-dependencies]
+test = ["pytest", "mock==3.0.5"]
+duration = ["python-dateutil>=2.8.0"]
+all = ["pytest", "mock==3.0.5", "python-dateutil>=2.8.0"]
