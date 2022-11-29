@@ -8,6 +8,10 @@ import re
 import socket
 import sys
 from datetime import timedelta
+from glob import glob
+from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
+from importlib.util import find_spec
 
 import pyparsing
 
@@ -36,52 +40,14 @@ from pyhocon.exceptions import (ConfigException, ConfigMissingException,
                                 ConfigSubstitutionException)
 
 
-use_urllib2 = False
-try:
-    # For Python 3.0 and later
-    from urllib.request import urlopen
-    from urllib.error import HTTPError, URLError
-except ImportError:  # pragma: no cover
-    # Fall back to Python 2's urllib2
-    from urllib2 import urlopen, HTTPError, URLError
-
-    use_urllib2 = True
-try:
-    basestring
-except NameError:  # pragma: no cover
-    basestring = str
-    unicode = str
-
-if sys.version_info < (3, 5):
-    def glob(pathname, recursive=False):
-        if recursive and '**' in pathname:
-            import warnings
-            warnings.warn('This version of python (%s) does not support recursive import' % sys.version)
-        from glob import glob as _glob
-        return _glob(pathname)
-else:
-    from glob import glob
-
-
-# Fix deprecated warning with 'imp' library and Python 3.4+.
-# See: https://github.com/chimpler/pyhocon/issues/248
-if sys.version_info >= (3, 4):
-    import importlib.util
-
-    def find_package_dirs(name):
-        spec = importlib.util.find_spec(name)
-        # When `imp.find_module()` cannot find a package it raises ImportError.
-        # Here we should simulate it to keep the compatibility with older
-        # versions.
-        if not spec:
-            raise ImportError('No module named {!r}'.format(name))
-        return spec.submodule_search_locations
-else:
-    import imp
-    import importlib
-
-    def find_package_dirs(name):
-        return [imp.find_module(name)[1]]
+def find_package_dirs(name):
+    spec = find_spec(name)
+    # When `imp.find_module()` cannot find a package it raises ImportError.
+    # Here we should simulate it to keep the compatibility with older
+    # versions.
+    if not spec:
+        raise ImportError(f'No module named {name!r}')
+    return spec.submodule_search_locations
 
 
 logger = logging.getLogger(__name__)
@@ -91,19 +57,19 @@ logger = logging.getLogger(__name__)
 #
 
 
-class DEFAULT_SUBSTITUTION(object):
+class DEFAULT_SUBSTITUTION:
     pass
 
 
-class MANDATORY_SUBSTITUTION(object):
+class MANDATORY_SUBSTITUTION:
     pass
 
 
-class NO_SUBSTITUTION(object):
+class NO_SUBSTITUTION:
     pass
 
 
-class STR_SUBSTITUTION(object):
+class STR_SUBSTITUTION:
     pass
 
 
@@ -125,16 +91,16 @@ def period(period_value, period_unit):
     return period_impl(**arguments)
 
 
-class ConfigFactory(object):
+class ConfigFactory:
 
     @classmethod
     def parse_file(cls, filename, encoding='utf-8', required=True, resolve=True, unresolved_value=DEFAULT_SUBSTITUTION):
         """Parse file
 
         :param filename: filename
-        :type filename: basestring
+        :type filename: str
         :param encoding: file encoding
-        :type encoding: basestring
+        :type encoding: str
         :param required: If true, raises an exception if can't load file
         :type required: boolean
         :param resolve: if true, resolve substitutions
@@ -150,7 +116,7 @@ class ConfigFactory(object):
             with codecs.open(filename, 'r', encoding=encoding) as fd:
                 content = fd.read()
                 return cls.parse_string(content, os.path.dirname(filename), resolve, unresolved_value)
-        except IOError as e:
+        except OSError as e:
             if required:
                 raise e
             logger.warning(f'Cannot include file {filename}. File does not exist or cannot be read.')
@@ -161,7 +127,7 @@ class ConfigFactory(object):
         """Parse URL
 
         :param url: url to parse
-        :type url: basestring
+        :type url: str
         :param resolve: if true, resolve substitutions
         :type resolve: boolean
         :param unresolved_value: assigned value to unresolved substitution.
@@ -175,7 +141,7 @@ class ConfigFactory(object):
 
         try:
             with contextlib.closing(urlopen(url, timeout=socket_timeout)) as fd:
-                content = fd.read() if use_urllib2 else fd.read().decode('utf-8')
+                content =fd.read().decode('utf-8')
                 return cls.parse_string(content, os.path.dirname(url), resolve, unresolved_value)
         except (HTTPError, URLError) as e:
             logger.warning(f'Cannot include url {url}. Resource is inaccessible.')
@@ -189,7 +155,7 @@ class ConfigFactory(object):
         """Parse string
 
         :param content: content to parse
-        :type content: basestring
+        :type content: str
         :param resolve: if true, resolve substitutions
         :type resolve: boolean
         :param unresolved_value: assigned value to unresolved substitution.
@@ -224,7 +190,7 @@ class ConfigFactory(object):
         return create_tree(dictionary)
 
 
-class ConfigParser(object):
+class ConfigParser:
     """
     Parse HOCON files: https://github.com/typesafehub/config/blob/master/HOCON.md
     """
@@ -282,7 +248,7 @@ class ConfigParser(object):
         """parse a HOCON content
 
         :param content: HOCON content to parse
-        :type content: basestring
+        :type content: str
         :param resolve: if true, resolve substitutions
         :type resolve: boolean
         :param unresolved_value: assigned value to unresolved substitution.
@@ -466,15 +432,15 @@ class ConfigParser(object):
 
             # multi line string using """
             # Using fix described in http://pyparsing.wikispaces.com/share/view/3778969
-            multiline_string = Regex('""".*?"*"""', re.DOTALL | re.UNICODE).setParseAction(parse_multi_string)
+            multiline_string = Regex('""".*?"*"""', re.DOTALL).setParseAction(parse_multi_string)
             # single quoted line string
-            quoted_string = Regex(r'"(?:[^"\\\n]|\\.)*"[ \t]*', re.UNICODE).setParseAction(create_quoted_string)
+            quoted_string = Regex(r'"(?:[^"\\\n]|\\.)*"[ \t]*').setParseAction(create_quoted_string)
             # unquoted string that takes the rest of the line until an optional comment
             # we support .properties multiline support which is like this:
             # line1  \
             # line2 \
             # so a backslash precedes the \n
-            unquoted_string = Regex(r'(?:[^^`+?!@*&"\[\{\s\]\}#,=\$\\]|\\.)+[ \t]*', re.UNICODE).setParseAction(unescape_string)
+            unquoted_string = Regex(r'(?:[^^`+?!@*&"\[\{\s\]\}#,=\$\\]|\\.)+[ \t]*').setParseAction(unescape_string)
             substitution_expr = Regex(r'[ \t]*\$\{[^\}]+\}[ \t]*').setParseAction(create_substitution)
             string_expr = multiline_string | quoted_string | unquoted_string
 
@@ -601,7 +567,7 @@ class ConfigParser(object):
         """Convert HOCON input into a JSON output
 
         :return: JSON string representation
-        :type return: basestring
+        :type return: str
         """
         if isinstance(item, ConfigValues):
             return item.get_substitutions()
@@ -774,7 +740,7 @@ class ListParser(TokenConverter):
     """
 
     def __init__(self, expr=None):
-        super(ListParser, self).__init__(expr)
+        super().__init__(expr)
         self.saveAsList = True
 
     def postParse(self, instring, loc, token_list):
@@ -811,7 +777,7 @@ class ListParser(TokenConverter):
 
 class ConcatenatedValueParser(TokenConverter):
     def __init__(self, expr=None):
-        super(ConcatenatedValueParser, self).__init__(expr)
+        super().__init__(expr)
         self.parent = None
         self.key = None
 
@@ -826,7 +792,7 @@ class ConfigTreeParser(TokenConverter):
     """
 
     def __init__(self, expr=None, root=False):
-        super(ConfigTreeParser, self).__init__(expr)
+        super().__init__(expr)
         self.root = root
         self.saveAsList = True
 
@@ -852,7 +818,7 @@ class ConfigTreeParser(TokenConverter):
                 elif len(tokens) == 2:
                     values = tokens[1:]
                 else:
-                    raise ParseSyntaxException("Unknown tokens {tokens} received".format(tokens=tokens))
+                    raise ParseSyntaxException(f"Unknown tokens {tokens} received")
                 # empty string
                 if len(values) == 0:
                     config_tree.put(key, '')
@@ -861,7 +827,7 @@ class ConfigTreeParser(TokenConverter):
                     if isinstance(value, list) and operator == "+=":
                         value = ConfigValues([ConfigSubstitution(key, True, '', False, loc), value], False, loc)
                         config_tree.put(key, value, False)
-                    elif isinstance(value, unicode) and operator == "+=":
+                    elif isinstance(value, str) and operator == "+=":
                         value = ConfigValues([ConfigSubstitution(key, True, '', True, loc), ' ' + value], True, loc)
                         config_tree.put(key, value, False)
                     elif isinstance(value, list):

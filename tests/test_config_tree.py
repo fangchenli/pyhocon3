@@ -1,5 +1,7 @@
-import pytest
 from collections import OrderedDict
+
+import pytest
+
 from pyhocon.config_tree import ConfigTree, NoneValue
 from pyhocon.exceptions import (
     ConfigMissingException, ConfigWrongTypeException, ConfigException)
@@ -7,7 +9,7 @@ from pyhocon.config_parser import ConfigFactory
 from pyhocon.tool import HOCONConverter
 
 
-class TestConfigTree(object):
+class TestConfigTree:
 
     def test_config_tree_quoted_string(self):
         config_tree = ConfigTree()
@@ -315,8 +317,8 @@ class TestConfigTree(object):
         special_characters = '$}[]:=+#`^?!@*&.'
         for char in special_characters:
             config_tree = ConfigTree()
-            escaped_key = "\"test{char}key\"".format(char=char)
-            key = "a.b.{escaped_key}".format(escaped_key=escaped_key)
+            escaped_key = f"\"test{char}key\""
+            key = f"a.b.{escaped_key}"
             config_tree.put(key, "value")
             hocon_tree = HOCONConverter.to_hocon(config_tree)
             assert escaped_key in hocon_tree

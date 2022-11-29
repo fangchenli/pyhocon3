@@ -10,26 +10,19 @@ from pyhocon.config_tree import ConfigTree
 from pyhocon.config_tree import ConfigValues
 from pyhocon.config_tree import NoneValue
 
-
-try:
-    basestring
-except NameError:
-    basestring = str
-    unicode = str
-
 try:
     from dateutil.relativedelta import relativedelta
 except Exception:
     relativedelta = None
 
 
-class HOCONConverter(object):
+class HOCONConverter:
     @classmethod
     def to_json(cls, config, compact=False, indent=2, level=0):
         """Convert HOCON input into a JSON output
 
         :return: JSON string representation
-        :type return: basestring
+        :type return: str
         """
         lines = ""
         if isinstance(config, ConfigTree):
@@ -63,7 +56,7 @@ class HOCONConverter(object):
                 lines += '\n{indent}]'.format(indent=''.rjust(level * indent, ' '))
         elif cls._is_timedelta_like(config):
             lines += cls._timedelta_to_str(config)
-        elif isinstance(config, basestring):
+        elif isinstance(config, str):
             lines = json.dumps(config, ensure_ascii=False)
         elif config is None or isinstance(config, NoneValue):
             lines = 'null'
@@ -80,7 +73,7 @@ class HOCONConverter(object):
         """Convert HOCON input into a HOCON output
 
         :return: JSON string representation
-        :type return: basestring
+        :type return: str
         """
         lines = ""
         if isinstance(config, ConfigTree):
@@ -121,11 +114,11 @@ class HOCONConverter(object):
                                                               value=cls.to_hocon(item, compact, indent, level + 1)))
                 lines += '\n'.join(bet_lines)
                 lines += '\n{indent}]'.format(indent=''.rjust((level - 1) * indent, ' '))
-        elif isinstance(config, basestring):
+        elif isinstance(config, str):
             if '\n' in config and len(config) > 1:
-                lines = '"""{value}"""'.format(value=config)  # multilines
+                lines = f'"""{config}"""'  # multilines
             else:
-                lines = '"{value}"'.format(value=cls.__escape_string(config))
+                lines = f'"{cls.__escape_string(config)}"'
         elif isinstance(config, ConfigValues):
             lines = ''.join(cls.to_hocon(o, compact, indent, level) for o in config.tokens)
         elif isinstance(config, ConfigSubstitution):
@@ -135,9 +128,9 @@ class HOCONConverter(object):
             lines += config.variable + '}' + config.ws
         elif isinstance(config, ConfigQuotedString):
             if '\n' in config.value and len(config.value) > 1:
-                lines = '"""{value}"""'.format(value=config.value)  # multilines
+                lines = f'"""{config.value}"""'  # multilines
             else:
-                lines = '"{value}"'.format(value=cls.__escape_string(config.value))
+                lines = f'"{cls.__escape_string(config.value)}"'
         elif cls._is_timedelta_like(config):
             lines += cls._timedelta_to_hocon(config)
         elif config is None or isinstance(config, NoneValue):
@@ -155,7 +148,7 @@ class HOCONConverter(object):
         """Convert HOCON input into a YAML output
 
         :return: YAML string representation
-        :type return: basestring
+        :type return: str
         """
         lines = ""
         if isinstance(config, ConfigTree):
@@ -183,7 +176,7 @@ class HOCONConverter(object):
                 lines += '\n'.join(bet_lines)
         elif cls._is_timedelta_like(config):
             lines += cls._timedelta_to_str(config)
-        elif isinstance(config, basestring):
+        elif isinstance(config, str):
             # if it contains a \n then it's multiline
             lines = config.split('\n')
             if len(lines) == 1:
@@ -205,7 +198,7 @@ class HOCONConverter(object):
         """Convert HOCON input into a .properties output
 
         :return: .properties string representation
-        :type return: basestring
+        :type return: str
         :return:
         """
         key_stack = key_stack or []
@@ -225,7 +218,7 @@ class HOCONConverter(object):
                     lines.append(cls.to_properties(item, compact, indent, stripped_key_stack + [str(index)]))
         elif cls._is_timedelta_like(config):
             lines.append('.'.join(stripped_key_stack) + ' = ' + cls._timedelta_to_str(config))
-        elif isinstance(config, basestring):
+        elif isinstance(config, str):
             lines.append('.'.join(stripped_key_stack) + ' = ' + escape_value(config))
         elif config is True:
             lines.append('.'.join(stripped_key_stack) + ' = true')
