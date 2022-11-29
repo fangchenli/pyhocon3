@@ -1,15 +1,14 @@
-# -*- encoding: utf-8 -*-
-
 import json
 import os
 import shutil
 import tempfile
 from collections import OrderedDict
 from datetime import timedelta
+from unittest import mock
 
 from pyparsing import ParseBaseException, ParseException, ParseSyntaxException
-import mock
 import pytest
+
 from pyhocon import (ConfigFactory, ConfigParser, ConfigSubstitutionException, ConfigTree)
 from pyhocon.exceptions import (ConfigException, ConfigMissingException,
                                 ConfigWrongTypeException)
@@ -20,7 +19,7 @@ except Exception:
     from datetime import timedelta as period
 
 
-class TestConfigParser(object):
+class TestConfigParser:
     def test_parse_simple_value(self):
         config = ConfigFactory.parse_string(
             """t = {
@@ -63,17 +62,17 @@ class TestConfigParser(object):
     @pytest.mark.parametrize('forbidden_char', ['+', '`', '^', '?', '!', '@', '*', '&'])
     def test_fail_parse_forbidden_characters(self, forbidden_char):
         with pytest.raises(ParseBaseException):
-            ConfigFactory.parse_string('a: hey man{}'.format(forbidden_char))
+            ConfigFactory.parse_string(f'a: hey man{forbidden_char}')
 
     @pytest.mark.parametrize('forbidden_char', ['$', '"'])
     def test_fail_parse_forbidden_characters_in_context(self, forbidden_char):
         with pytest.raises(ParseException):
-            ConfigFactory.parse_string('a: hey man{}'.format(forbidden_char))
+            ConfigFactory.parse_string(f'a: hey man{forbidden_char}')
 
     @pytest.mark.parametrize('forbidden_char', ['+', '`', '^', '?', '!', '@', '*', '&'])
     def test_parse_forbidden_characters_quoted(self, forbidden_char):
-        value = "hey man{}".format(forbidden_char)
-        config = ConfigFactory.parse_string('a: "{}"'.format(value))
+        value = f"hey man{forbidden_char}"
+        config = ConfigFactory.parse_string(f'a: "{value}"')
         assert config.get_string("a") == value
 
     def test_parse_with_enclosing_brace(self):
@@ -420,7 +419,7 @@ class TestConfigParser(object):
         assert config2.get('f') == 'test  str      '
 
         config3 = ConfigFactory.parse_string(
-            u"""
+            """
             {
                 a: {
                     b: {
@@ -900,7 +899,7 @@ class TestConfigParser(object):
         )
         assert config.get("x.y") == {'z': 1}
         assert config.get("x.z") == 1
-        assert set(config.get("x").keys()) == set(['y', 'z'])
+        assert set(config.get("x").keys()) == {'y', 'z'}
 
     def test_self_ref_substitution_dict_path_hide(self):
         config = ConfigFactory.parse_string(
@@ -910,7 +909,7 @@ class TestConfigParser(object):
             """
         )
         assert config.get("x.y") == 1
-        assert set(config.get("x").keys()) == set(['y'])
+        assert set(config.get("x").keys()) == {'y'}
 
     def test_self_ref_substitution_dict_recurse(self):
         with pytest.raises(ConfigSubstitutionException):
@@ -941,7 +940,7 @@ class TestConfigParser(object):
             """
         )
         assert config.get('foo') == {'a': 2, 'c': 1}
-        assert set(config.keys()) == set(['foo'])
+        assert set(config.keys()) == {'foo'}
 
     def test_self_ref_substitution_dict_otherfield(self):
         '''
@@ -956,7 +955,7 @@ class TestConfigParser(object):
             """
         )
         assert config.get("bar") == {'foo': 42, 'baz': 42}
-        assert set(config.keys()) == set(['bar'])
+        assert set(config.keys()) == {'bar'}
 
     def test_self_ref_substitution_dict_otherfield_merged_in(self):
         '''
@@ -972,7 +971,7 @@ class TestConfigParser(object):
             """
         )
         assert config.get("bar") == {'foo': 43, 'baz': 43}
-        assert set(config.keys()) == set(['bar'])
+        assert set(config.keys()) == {'bar'}
 
     def test_self_ref_substitution_dict_otherfield_merged_in_mutual(self):
         '''
@@ -990,7 +989,7 @@ class TestConfigParser(object):
         )
         assert config.get("bar") == {'a': 4, 'b': 3}
         assert config.get("foo") == {'c': 3, 'd': 4}
-        assert set(config.keys()) == set(['bar', 'foo'])
+        assert set(config.keys()) == {'bar', 'foo'}
 
     def test_self_ref_substitution_string_opt_concat(self):
         '''
@@ -1002,7 +1001,7 @@ class TestConfigParser(object):
             """
         )
         assert config.get("a") == 'foo'
-        assert set(config.keys()) == set(['a'])
+        assert set(config.keys()) == {'a'}
 
     def test_self_ref_substitution_dict_recurse_part(self):
         with pytest.raises(ConfigSubstitutionException):
@@ -1800,7 +1799,7 @@ class TestConfigParser(object):
         )
 
         config5 = ConfigFactory.parse_string(
-            u"""
+            """
             longName: "long "${?name}
             """,
             resolve=False
@@ -1823,7 +1822,7 @@ class TestConfigParser(object):
         )
 
         # use unicode path here for regression testing https://github.com/chimpler/pyhocon/issues/44
-        config2 = config1.with_fallback(u'samples/aws.conf')
+        config2 = config1.with_fallback('samples/aws.conf')
         assert config2 == {
             'data-center-generic': {'cluster-size': 8},
             'data-center-east': {'cluster-size': 8, 'name': 'east'},
@@ -2265,7 +2264,7 @@ test2 = test
         assert config.get_int('int_from_env') == 5
 
     def test_unicode_dict_key(self):
-        input_string = u"""
+        input_string = """
 www.sample.com {
     us {
         name = "first domain"
@@ -2280,20 +2279,20 @@ www.example-ö.com {
 
         config = ConfigFactory.parse_string(input_string)
 
-        assert config.get_string(u'www.sample.com.us.name') == 'first domain'
-        assert config.get_string(u'www.example-ö.com.us.name') == 'second domain'
+        assert config.get_string('www.sample.com.us.name') == 'first domain'
+        assert config.get_string('www.example-ö.com.us.name') == 'second domain'
         with pytest.raises(ConfigWrongTypeException):
-            config.put(u'www.example-ö', 'append_failure', append=True)
+            config.put('www.example-ö', 'append_failure', append=True)
         with pytest.raises(ConfigMissingException):
-            config.get_string(u'missing_unicode_key_ö')
+            config.get_string('missing_unicode_key_ö')
         with pytest.raises(ConfigException):
-            config.get_bool(u'www.example-ö.com.us.name')
+            config.get_bool('www.example-ö.com.us.name')
         with pytest.raises(ConfigException):
-            config.get_list(u'www.example-ö.com.us.name')
+            config.get_list('www.example-ö.com.us.name')
         with pytest.raises(ConfigException):
-            config.get_config(u'www.example-ö.com.us.name')
+            config.get_config('www.example-ö.com.us.name')
         with pytest.raises(ConfigWrongTypeException):
-            config.get_string(u'www.example-ö.com.us.name.missing')
+            config.get_string('www.example-ö.com.us.name.missing')
 
     def test_with_comment_on_last_line(self):
         # Adress issue #102

@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 from datetime import timedelta
 
 from pyhocon import ConfigTree
@@ -9,7 +8,7 @@ def to_json(obj):
     return HOCONConverter.to_json(ConfigTree(obj), compact=True, indent=1)
 
 
-class TestConverterToJson(object):
+class TestConverterToJson:
     def test_escape_control_characters(self):
         assert '{\n "a": "\\u0000"\n}' == to_json({'a': '\x00'})
         assert '{\n "a": "\\u0001"\n}' == to_json({'a': '\x01'})
@@ -61,7 +60,7 @@ def to_hocon(obj):
     return HOCONConverter.to_hocon(ConfigTree(obj))
 
 
-class TestConverterToHocon(object):
+class TestConverterToHocon:
     def test_escape_control_characters(self):
         assert r'a = "\u0000"' == to_hocon({'a': '\x00'})
         assert r'a = "\u0001"' == to_hocon({'a': '\x01'})

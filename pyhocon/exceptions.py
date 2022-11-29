@@ -1,7 +1,7 @@
 class ConfigException(Exception):
 
     def __init__(self, message, ex=None):
-        super(ConfigException, self).__init__(message)
+        super().__init__(message)
         self._exception = ex
 
 

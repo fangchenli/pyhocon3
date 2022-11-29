@@ -1,25 +1,21 @@
 from collections import OrderedDict
-from pyparsing import col, lineno
 import re
 import copy
+
+from pyparsing import col, lineno
+
 from pyhocon.exceptions import ConfigException, ConfigWrongTypeException, ConfigMissingException
 
-try:
-    basestring
-except NameError:  # pragma: no cover
-    basestring = str
-    unicode = str
 
-
-class UndefinedKey(object):
+class UndefinedKey:
     pass
 
 
-class NonExistentKey(object):
+class NonExistentKey:
     pass
 
 
-class NoneValue(object):
+class NoneValue:
     pass
 
 
@@ -30,7 +26,7 @@ class ConfigTree(OrderedDict):
         self.root = kwds.pop('root') if 'root' in kwds else False
         if self.root:
             self.history = {}
-        super(ConfigTree, self).__init__(*args, **kwds)
+        super().__init__(*args, **kwds)
         for key, value in self.items():
             if isinstance(value, ConfigValues):
                 value.parent = self
@@ -137,7 +133,7 @@ class ConfigTree(OrderedDict):
 
                 else:
                     raise ConfigWrongTypeException(
-                        u"Cannot concatenate the list {key}: {value} to {prev_value} of {type}".format(
+                        "Cannot concatenate the list {key}: {value} to {prev_value} of {type}".format(
                             key='.'.join(key_path),
                             value=value,
                             prev_value=l_value,
@@ -152,7 +148,7 @@ class ConfigTree(OrderedDict):
                 self._push_history(key_elt, value)
                 self[key_elt] = value
         else:
-            next_config_tree = super(ConfigTree, self).get(key_elt)
+            next_config_tree = super().get(key_elt)
             if not isinstance(next_config_tree, ConfigTree):
                 # create a new dictionary or overwrite a previous value
                 next_config_tree = ConfigTree()
@@ -169,12 +165,12 @@ class ConfigTree(OrderedDict):
 
     def _get(self, key_path, key_index=0, default=UndefinedKey):
         key_elt = key_path[key_index]
-        elt = super(ConfigTree, self).get(key_elt, UndefinedKey)
+        elt = super().get(key_elt, UndefinedKey)
 
         if elt is UndefinedKey:
             if default is UndefinedKey:
                 raise ConfigMissingException(
-                    u"No configuration setting found for key {key}".format(key='.'.join(key_path[:key_index + 1])))
+                    "No configuration setting found for key {key}".format(key='.'.join(key_path[:key_index + 1])))
             else:
                 return default
 
@@ -190,7 +186,7 @@ class ConfigTree(OrderedDict):
         else:
             if default is UndefinedKey:
                 raise ConfigWrongTypeException(
-                    u"{key} has type {type} rather than dict".format(key='.'.join(key_path[:key_index + 1]),
+                    "{key} has type {type} rather than dict".format(key='.'.join(key_path[:key_index + 1]),
                                                                      type=type(elt).__name__))
             else:
                 return default
@@ -208,7 +204,7 @@ class ConfigTree(OrderedDict):
         """
         special_characters = '$}[]:=+#`^?!@*&.'
         tokens = re.findall(
-            r'"[^"]+"|[^{special_characters}]+'.format(special_characters=re.escape(special_characters)), string)
+            fr'"[^"]+"|[^{re.escape(special_characters)}]+', string)
 
         def contains_special_character(token):
             return any((c in special_characters) for c in token)
@@ -219,7 +215,7 @@ class ConfigTree(OrderedDict):
         """Put a value in the tree (dot separated)
 
         :param key: key to use (dot separated). E.g., a.b.c
-        :type key: basestring
+        :type key: str
         :param value: value to put
         """
         self._put(ConfigTree.parse_key(key), value, append)
@@ -228,7 +224,7 @@ class ConfigTree(OrderedDict):
         """Get a value from the tree
 
         :param key: key to use (dot separated). E.g., a.b.c
-        :type key: basestring
+        :type key: str
         :param default: default value if key not found
         :type default: object
         :return: value in the tree located at key
@@ -239,17 +235,17 @@ class ConfigTree(OrderedDict):
         """Return string representation of value found at key
 
         :param key: key to use (dot separated). E.g., a.b.c
-        :type key: basestring
+        :type key: str
         :param default: default value if key not found
-        :type default: basestring
+        :type default: str
         :return: string value
-        :type return: basestring
+        :type return: str
         """
         value = self.get(key, default)
         if value is None:
             return None
 
-        string_value = unicode(value)
+        string_value = str(value)
         if isinstance(value, bool):
             string_value = string_value.lower()
         return string_value
@@ -262,7 +258,7 @@ class ConfigTree(OrderedDict):
         and pops the last value out of the dict.
 
         :param key: key to use (dot separated). E.g., a.b.c
-        :type key: basestring
+        :type key: str
         :param default: default value if key not found
         :type default: object
         :param default: default value if key not found
@@ -286,7 +282,7 @@ class ConfigTree(OrderedDict):
         """Return int representation of value found at key
 
         :param key: key to use (dot separated). E.g., a.b.c
-        :type key: basestring
+        :type key: str
         :param default: default value if key not found
         :type default: int
         :return: int value
@@ -297,13 +293,13 @@ class ConfigTree(OrderedDict):
             return int(value) if value is not None else None
         except (TypeError, ValueError):
             raise ConfigException(
-                u"{key} has type '{type}' rather than 'int'".format(key=key, type=type(value).__name__))
+                f"{key} has type '{type(value).__name__}' rather than 'int'")
 
     def get_float(self, key, default=UndefinedKey):
         """Return float representation of value found at key
 
         :param key: key to use (dot separated). E.g., a.b.c
-        :type key: basestring
+        :type key: str
         :param default: default value if key not found
         :type default: float
         :return: float value
@@ -314,13 +310,13 @@ class ConfigTree(OrderedDict):
             return float(value) if value is not None else None
         except (TypeError, ValueError):
             raise ConfigException(
-                u"{key} has type '{type}' rather than 'float'".format(key=key, type=type(value).__name__))
+                f"{key} has type '{type(value).__name__}' rather than 'float'")
 
     def get_bool(self, key, default=UndefinedKey):
         """Return boolean representation of value found at key
 
         :param key: key to use (dot separated). E.g., a.b.c
-        :type key: basestring
+        :type key: str
         :param default: default value if key not found
         :type default: bool
         :return: boolean value
@@ -341,13 +337,13 @@ class ConfigTree(OrderedDict):
             return bool_conversions[string_value]
         except KeyError:
             raise ConfigException(
-                u"{key} does not translate to a Boolean value".format(key=key))
+                f"{key} does not translate to a Boolean value")
 
     def get_list(self, key, default=UndefinedKey):
         """Return list representation of value found at key
 
         :param key: key to use (dot separated). E.g., a.b.c
-        :type key: basestring
+        :type key: str
         :param default: default value if key not found
         :type default: list
         :return: list value
@@ -362,19 +358,19 @@ class ConfigTree(OrderedDict):
                 if re.match('^[1-9][0-9]*$|0', k):
                     lst.append(v)
                 else:
-                    raise ConfigException(u"{key} does not translate to a list".format(key=key))
+                    raise ConfigException(f"{key} does not translate to a list")
             return lst
         elif value is None:
             return None
         else:
             raise ConfigException(
-                u"{key} has type '{type}' rather than 'list'".format(key=key, type=type(value).__name__))
+                f"{key} has type '{type(value).__name__}' rather than 'list'")
 
     def get_config(self, key, default=UndefinedKey):
         """Return tree config representation of value found at key
 
         :param key: key to use (dot separated). E.g., a.b.c
-        :type key: basestring
+        :type key: str
         :param default: default value if key not found
         :type default: config
         :return: config value
@@ -387,7 +383,7 @@ class ConfigTree(OrderedDict):
             return None
         else:
             raise ConfigException(
-                u"{key} has type '{type}' rather than 'config'".format(key=key, type=type(value).__name__))
+                f"{key} has type '{type(value).__name__}' rather than 'config'")
 
     def __getitem__(self, item):
         val = self.get(item)
@@ -406,7 +402,7 @@ class ConfigTree(OrderedDict):
     def __getattr__(self, item):
         val = self.get(item, NonExistentKey)
         if val is NonExistentKey:
-            return super(ConfigTree, self).__getattr__(item)
+            return super().__getattr__(item)
         return val
 
     def __contains__(self, item):
@@ -458,19 +454,19 @@ class ConfigTree(OrderedDict):
 class ConfigList(list):
     def __init__(self, iterable=[]):
         new_list = list(iterable)
-        super(ConfigList, self).__init__(new_list)
+        super().__init__(new_list)
         for index, value in enumerate(new_list):
             if isinstance(value, ConfigValues):
                 value.parent = self
                 value.key = index
 
 
-class ConfigInclude(object):
+class ConfigInclude:
     def __init__(self, tokens):
         self.tokens = tokens
 
 
-class ConfigValues(object):
+class ConfigValues:
     def __init__(self, tokens, instring, loc):
         self.tokens = tokens
         self.parent = None
@@ -522,7 +518,7 @@ class ConfigValues(object):
             if isinstance(v, ConfigQuotedString):
                 return v.value + ('' if last else v.ws)
             else:
-                return '' if v is None else unicode(v)
+                return '' if v is None else str(v)
 
         if self.has_substitution():
             return self
@@ -601,7 +597,7 @@ class ConfigValues(object):
         return '[ConfigValues: ' + ','.join(str(o) for o in self.tokens) + ']'
 
 
-class ConfigSubstitution(object):
+class ConfigSubstitution:
     def __init__(self, variable, optional, ws, instring, loc):
         self.variable = variable
         self.optional = optional
@@ -618,12 +614,12 @@ class ConfigSubstitution(object):
         return '[ConfigSubstitution: ' + self.variable + ']'
 
 
-class ConfigUnquotedString(unicode):
+class ConfigUnquotedString(str):
     def __new__(cls, value):
-        return super(ConfigUnquotedString, cls).__new__(cls, value)
+        return super().__new__(cls, value)
 
 
-class ConfigQuotedString(object):
+class ConfigQuotedString:
     def __init__(self, value, ws, instring, loc):
         self.value = value
         self.ws = ws

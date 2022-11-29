@@ -39,9 +39,9 @@ repository = "http://github.com/chimpler/pyhocon/"
 pyhocon = "pyhocon:tool"
 
 [project.optional-dependencies]
-test = ["pytest", "mock==3.0.5"]
+test = ["pytest"]
 duration = ["python-dateutil>=2.8.0"]
-all = ["pytest", "mock==3.0.5", "python-dateutil>=2.8.0"]
+all = ["pytest", "python-dateutil>=2.8.0"]
 
 [tool.setuptools]
 packages = ["pyhocon"]
