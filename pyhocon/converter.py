@@ -298,7 +298,7 @@ class HOCONConverter(object):
 
     @classmethod
     def _timedelta_to_str(cls, config):
-        if isinstance(config, relativedelta):
+        if (relativedelta is not None) and (isinstance(config, relativedelta)):
             time_delta = cls._relative_delta_to_timedelta(config)
         else:
             time_delta = config
