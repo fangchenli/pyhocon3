@@ -153,7 +153,7 @@ class ConfigFactory(object):
         except IOError as e:
             if required:
                 raise e
-            logger.warn('Cannot include file %s. File does not exist or cannot be read.', filename)
+            logger.warning(f'Cannot include file {filename}. File does not exist or cannot be read.')
             return []
 
     @classmethod
@@ -178,7 +178,7 @@ class ConfigFactory(object):
                 content = fd.read() if use_urllib2 else fd.read().decode('utf-8')
                 return cls.parse_string(content, os.path.dirname(url), resolve, unresolved_value)
         except (HTTPError, URLError) as e:
-            logger.warn('Cannot include url %s. Resource is inaccessible.', url)
+            logger.warning(f'Cannot include url {url}. Resource is inaccessible.')
             if required:
                 raise e
             else:
