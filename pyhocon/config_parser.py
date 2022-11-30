@@ -167,7 +167,7 @@ class ConfigFactory:
     def parse_URL(
         cls,
         url,
-        timeout=None,
+        timeout=10,
         resolve=True,
         required=False,
         unresolved_value=DEFAULT_SUBSTITUTION,
@@ -176,6 +176,8 @@ class ConfigFactory:
 
         :param url: url to parse
         :type url: str
+        :param timeout: socket timeout in seconds
+        :type timeout: int
         :param resolve: if true, resolve substitutions
         :type resolve: boolean
         :param unresolved_value: assigned value to unresolved substitution.
@@ -185,11 +187,10 @@ class ConfigFactory:
         :return: Config object or []
         :type return: Config or list
         """
-        socket_timeout = socket._GLOBAL_DEFAULT_TIMEOUT if timeout is None else timeout
 
         try:
-            with contextlib.closing(urlopen(url, timeout=socket_timeout)) as fd:
-                content = fd.read().decode("utf-8")
+            with urlopen(url, timeout=timeout) as response:
+                content = response.read().decode("utf-8")
                 return cls.parse_string(
                     content, os.path.dirname(url), resolve, unresolved_value
                 )
