@@ -10,6 +10,7 @@ import pytest
 from pyparsing import ParseBaseException, ParseException, ParseSyntaxException
 
 from pyhocon import ConfigFactory, ConfigParser, ConfigSubstitutionException, ConfigTree
+from pyhocon.compat import is_windows
 from pyhocon.exceptions import (
     ConfigException,
     ConfigMissingException,
@@ -1170,6 +1171,7 @@ class TestConfigParser:
         with pytest.raises(ParseSyntaxException):
             ConfigFactory.parse_string("a = {g}")
 
+    @pytest.mark.skipif(is_windows, reason="fails on windows")
     def test_include_file(self):
         with tempfile.NamedTemporaryFile("w") as fdin:
             fdin.write("[1, 2]")
@@ -1291,6 +1293,7 @@ class TestConfigParser:
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
 
+    @pytest.mark.skipif(is_windows, reason="fails on windows")
     def test_include_dict(self):
         expected_res = {"a": 1, "b": 2, "c": 3, "d": 4}
         with tempfile.NamedTemporaryFile("w") as fdin:
@@ -1336,6 +1339,7 @@ class TestConfigParser:
             )
             assert config3["a"] == expected_res
 
+    @pytest.mark.skipif(is_windows, reason="fails on windows")
     def test_include_substitution(self):
         with tempfile.NamedTemporaryFile("w") as fdin:
             fdin.write("y = ${x}")
